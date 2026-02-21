@@ -1,16 +1,14 @@
 from django.contrib import admin
-from main.models import RoundHistory, ClientRecord
+from .models import GlobalModel, Client, ModelUpdateLog
 
+@admin.register(GlobalModel)
+class GlobalModelAdmin(admin.ModelAdmin):
+    list_display = ('version', 'created_at')
 
-@admin.register(RoundHistory)
-class RoundHistoryAdmin(admin.ModelAdmin):
-    list_display = ['round_id', 'timestamp', 'n_updates', 'n_flagged', 'global_loss']
-    list_filter = ['timestamp']
-    ordering = ['-timestamp']
+@admin.register(Client)
+class ClientAdmin(admin.ModelAdmin):
+    list_display = ('client_id', 'trust_score', 'rejected_count')
 
-
-@admin.register(ClientRecord)
-class ClientRecordAdmin(admin.ModelAdmin):
-    list_display = ['client_id', 'last_seen', 'total_updates', 'flagged_count', 'flag_reason']
-    list_filter = ['last_seen']
-    ordering = ['-last_seen']
+@admin.register(ModelUpdateLog)
+class ModelUpdateLogAdmin(admin.ModelAdmin):
+    list_display = ('client', 'norm', 'accepted', 'timestamp')

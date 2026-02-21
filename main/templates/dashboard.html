@@ -4,39 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FedGuard — Server Dashboard</title>
-    <meta name="description" content="FedGuard federated learning server monitoring dashboard">
+    <title>Antigravity — Unified Control</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,700;9..144,900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@700;900&display=swap"
         rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         :root {
             --ink: #0D0F14;
             --paper: #F5F0E8;
-            --cream: #EDE8DC;
             --rust: #C84B31;
             --gold: #C9922A;
             --teal: #1A7A6E;
-            --slate: #2C3E50;
             --mist: #8B9BAA;
-            --rule: #D4C9B0;
+            --rule: #1E2530;
+            --mid: #141820;
             --mono: 'DM Mono', monospace;
             --serif: 'Fraunces', serif;
         }
 
-        html {
-            font-size: 16px;
-            scroll-behavior: smooth;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
@@ -46,219 +35,144 @@
             min-height: 100vh;
         }
 
-        /* ── TOPBAR ── */
         .topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 16px 32px;
-            border-bottom: 1px solid #1E2530;
             background: #090B0F;
+            border-bottom: 1px solid var(--rule);
         }
 
-        .topbar-brand {
+        .brand {
             font-family: var(--serif);
             font-size: 22px;
             font-weight: 900;
-            letter-spacing: -1px;
-            color: var(--paper);
         }
 
-        .topbar-brand span {
+        .brand span {
             color: var(--rust);
         }
 
-        .topbar-nav {
-            display: flex;
-            gap: 8px;
-        }
-
-        .nav-btn {
+        .nav-link {
             padding: 7px 18px;
             border: 1px solid #2A3240;
-            background: transparent;
             color: var(--mist);
-            font-family: var(--mono);
             font-size: 11px;
-            letter-spacing: 1.5px;
             text-transform: uppercase;
-            cursor: pointer;
-            border-radius: 2px;
             text-decoration: none;
             transition: all 0.15s;
         }
 
-        .nav-btn:hover,
-        .nav-btn.active {
+        .nav-link.active {
             background: var(--rust);
             color: white;
             border-color: var(--rust);
         }
 
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--teal);
-            margin-right: 6px;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.4;
-            }
-        }
-
-        /* ── STAT CARDS ── */
-        .metrics-bar {
+        .layout {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            border-bottom: 1px solid #1E2530;
+            grid-template-columns: 1fr 340px;
+            gap: 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 32px;
         }
 
-        .metric-card {
-            padding: 24px 28px;
-            border-right: 1px solid #1E2530;
-            position: relative;
-        }
-
-        .metric-card:last-child {
-            border-right: none;
-        }
-
-        .metric-label {
-            font-size: 10px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--mist);
-            margin-bottom: 8px;
-        }
-
-        .metric-value {
+        h1 {
             font-family: var(--serif);
-            font-size: 38px;
-            font-weight: 900;
-            line-height: 1;
+            font-size: 48px;
             letter-spacing: -2px;
+            margin-bottom: 30px;
         }
 
-        .metric-value.green {
-            color: #4ECDC4;
+        h1 span {
+            color: var(--teal);
         }
 
-        .metric-value.red {
-            color: var(--rust);
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
         }
 
-        .metric-value.gold {
-            color: var(--gold);
+        .stat-card {
+            background: var(--mid);
+            border: 1px solid var(--rule);
+            padding: 30px;
+            border-radius: 4px;
+            border-top: 4px solid var(--teal);
         }
 
-        .metric-value.white {
-            color: var(--paper);
-        }
-
-        .metric-sub {
-            margin-top: 4px;
+        .stat-label {
             font-size: 10px;
             color: var(--mist);
+            text-transform: uppercase;
+            margin-bottom: 10px;
         }
 
-        /* ── MAIN LAYOUT ── */
-        .main-layout {
-            display: grid;
-            grid-template-columns: 1fr 360px;
-            min-height: calc(100vh - 57px - 100px);
+        .stat-value {
+            font-size: 32px;
+            font-weight: 900;
+            font-family: var(--serif);
         }
 
-        .chart-panel {
-            padding: 32px;
-            border-right: 1px solid #1E2530;
-        }
-
-        .panel-title {
-            font-size: 11px;
+        .section-title {
+            font-size: 10px;
             letter-spacing: 2px;
             text-transform: uppercase;
             color: var(--mist);
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--rule);
             margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #1E2530;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
         }
 
-        .panel-title .badge {
-            font-size: 9px;
-            background: var(--teal);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 2px;
-            letter-spacing: 1px;
-        }
-
-        .chart-wrap {
-            position: relative;
-            height: 220px;
-            margin-bottom: 32px;
-        }
-
-        /* ── ROUND TABLE ── */
-        .round-table {
+        .activity-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 11.5px;
+            font-size: 12px;
         }
 
-        .round-table th {
+        .activity-table th {
             text-align: left;
-            font-size: 9px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
             color: var(--mist);
-            padding: 8px 12px;
-            border-bottom: 1px solid #1E2530;
+            padding: 12px;
+            border-bottom: 1px solid var(--rule);
+            font-weight: 400;
+            text-transform: uppercase;
+            font-size: 9px;
         }
 
-        .round-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #141820;
-            vertical-align: middle;
-            color: #C8D0D8;
+        .activity-table td {
+            padding: 15px 12px;
+            border-bottom: 1px solid var(--rule);
         }
 
-        .round-table tr:hover td {
-            background: #141820;
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            text-transform: uppercase;
         }
 
-        .badge-flagged {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 10px;
-            color: var(--rust);
-        }
-
-        .badge-clean {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 10px;
+        .pill-accepted {
+            background: rgba(26, 122, 110, 0.1);
             color: #4ECDC4;
+            border: 1px solid #1A7A6E;
         }
 
-        /* ── CLIENT SIDEBAR ── */
-        .client-panel {
-            padding: 32px 24px;
+        .pill-rejected {
+            background: rgba(200, 75, 49, 0.1);
+            color: #FF6B6B;
+            border: 1px solid #C84B31;
+        }
+
+        .client-list {
+            background: var(--mid);
+            border: 1px solid var(--rule);
+            padding: 20px;
+            border-radius: 4px;
         }
 
         .client-row {
@@ -266,335 +180,121 @@
             align-items: center;
             justify-content: space-between;
             padding: 12px 0;
-            border-bottom: 1px solid #141820;
+            border-bottom: 1px solid var(--rule);
         }
 
-        .client-id {
+        .client-name {
             font-size: 12px;
-            color: var(--paper);
-            font-family: var(--mono);
         }
 
-        .client-id small {
-            display: block;
-            font-size: 10px;
-            color: var(--mist);
-            margin-top: 2px;
-        }
-
-        .trust-bar-wrap {
-            flex: 1;
-            margin: 0 12px;
-            height: 4px;
-            background: #1E2530;
-            border-radius: 2px;
-        }
-
-        .trust-bar {
-            height: 100%;
-            border-radius: 2px;
-            transition: width 0.5s ease;
-        }
-
-        .client-meta {
-            text-align: right;
-            font-size: 10px;
-            color: var(--mist);
-        }
-
-        .flag-row {
-            background: rgba(200, 75, 49, 0.07);
-        }
-
-        .flag-row .client-id {
-            color: var(--rust);
-        }
-
-        /* ── LIVE INDICATOR ── */
-        .live-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 10px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #4ECDC4;
-            padding: 4px 10px;
-            border: 1px solid #1A7A6E44;
-            border-radius: 100px;
-        }
-
-        /* ── EMPTY STATE ── */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--mist);
-            font-size: 12px;
-            line-height: 2;
-        }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 900px) {
-            .metrics-bar {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .main-layout {
-                grid-template-columns: 1fr;
-            }
-
-            .chart-panel {
-                border-right: none;
-            }
+        .client-score {
+            font-weight: 700;
+            color: var(--teal);
         }
     </style>
 </head>
 
 <body>
-
     <nav class="topbar">
-        <div class="topbar-brand">Fed<span>Guard</span></div>
-        <div class="topbar-nav">
-            <span class="live-chip"><span class="status-dot"></span>LIVE</span>
-            <a href="/" class="nav-btn active">Dashboard</a>
-            <a href="/train/" class="nav-btn">Client Training</a>
-            <a href="/admin/" class="nav-btn">Admin</a>
+        <div class="brand">Anti<span>gravity</span></div>
+        <div>
+            <a href="/" class="nav-link active">Dashboard</a>
+            <a href="/train/" class="nav-link">Federated Notebook</a>
         </div>
     </nav>
 
-    <!-- ── METRICS BAR ── -->
-    <div class="metrics-bar">
-        <div class="metric-card">
-            <div class="metric-label">Current Round</div>
-            <div class="metric-value white" id="stat-round">0</div>
-            <div class="metric-sub">global model version</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Total Updates</div>
-            <div class="metric-value green" id="stat-updates">0</div>
-            <div class="metric-sub">received by server</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Flagged Updates</div>
-            <div class="metric-value red" id="stat-flagged">0</div>
-            <div class="metric-sub">rejected as outliers</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Queue Depth</div>
-            <div class="metric-value gold" id="stat-queue">0</div>
-            <div class="metric-sub">pending aggregation</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Last Aggregation</div>
-            <div class="metric-value white" style="font-size:18px; letter-spacing:0;" id="stat-last">—</div>
-            <div class="metric-sub">server time</div>
-        </div>
-    </div>
+    <div class="layout">
+        <main>
+            <h1>Global <span>Cluster</span></h1>
 
-    <div class="main-layout">
-
-        <!-- ── CHART + ROUNDS TABLE ── -->
-        <div class="chart-panel">
-            <div class="panel-title">
-                Aggregation History
-                <span class="badge">Updates every 10s</span>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Model Version</div>
+                    <div class="stat-value">v{{ latest_model.version|default:0 }}</div>
+                </div>
+                <div class="stat-card" style="border-top-color: var(--gold);">
+                    <div class="stat-label">Total Contributions</div>
+                    <div class="stat-value">{{ recent_updates.count }}</div>
+                </div>
+                <div class="stat-card" style="border-top-color: var(--rust);">
+                    <div class="stat-label">Participation Rate</div>
+                    <div class="stat-value">{{ clients.count }} Node{% if clients.count != 1 %}s{% endif %}</div>
+                </div>
             </div>
 
-            <div class="chart-wrap">
-                <canvas id="roundChart"></canvas>
-            </div>
-
-            <div class="panel-title" style="margin-top:8px;">
-                Recent Rounds
-            </div>
-
-            <div style="overflow-x: auto;">
-                <table class="round-table">
+            <div class="section-title">Central Activity Feed</div>
+            <div class="activity-list"
+                style="background: var(--mid); border: 1px solid var(--rule); border-radius: 4px;">
+                <table class="activity-table">
                     <thead>
                         <tr>
-                            <th>Round</th>
+                            <th>Participant</th>
+                            <th>Status</th>
+                            <th>Norm</th>
                             <th>Time</th>
-                            <th>Clean</th>
-                            <th>Flagged</th>
                         </tr>
                     </thead>
-                    <tbody id="rounds-tbody">
+                    <tbody>
+                        {% for update in recent_updates %}
                         <tr>
-                            <td colspan="4">
-                                <div class="empty-state">Waiting for first aggregation round…</div>
+                            <td><code style="color:var(--paper)">{{ update.client.client_id|truncatechars:18 }}</code>
                             </td>
+                            <td>
+                                <span
+                                    class="status-pill {% if update.accepted %}pill-accepted{% else %}pill-rejected{% endif %}">
+                                    {% if update.accepted %}Accepted{% else %}Rejected{% endif %}
+                                </span>
+                            </td>
+                            <td>{{ update.norm|stringformat:".2f" }}</td>
+                            <td style="color:var(--mist)">{{ update.timestamp|timesince }} ago</td>
                         </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align:center; padding: 40px; color: var(--mist);">Zero global
+                                submissions detected. Cluster is idle.</td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </div>
+        </main>
 
-        <!-- ── CLIENT SIDEBAR ── -->
-        <div class="client-panel">
-            <div class="panel-title">
-                Client Registry
-                <span class="badge" id="client-count">0 clients</span>
+        <aside>
+            <div class="section-title">Participation Scores</div>
+            <div class="client-list">
+                {% for client in clients %}
+                <div class="client-row">
+                    <div>
+                        <div class="client-name">{{ client.client_id|truncatechars:18 }}</div>
+                        <div style="font-size: 9px; color: var(--mist);">Last active: {{ client.last_update|timesince }}
+                            ago</div>
+                    </div>
+                    <div class="client-score">{{ client.trust_score|stringformat:".2f" }}</div>
+                </div>
+                {% empty %}
+                <div style="text-align:center; padding: 20px; font-size: 11px; color: var(--mist);">No registered
+                    participants.</div>
+                {% endfor %}
             </div>
-            <div id="client-list">
-                <div class="empty-state">No clients connected yet.<br>Open <code>/train/</code> on a client laptop.
+
+            <div class="section-title" style="margin-top: 40px;">Interactive Status</div>
+            <div class="client-list" style="background: rgba(26,122,110,0.05); border-color: rgba(26,122,110,0.2);">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 10px;">
+                    <span style="color: var(--mist);">API Engine</span>
+                    <span style="color: #4ECDC4;">Unified v2</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span style="color: var(--mist);">Mode</span>
+                    <span style="color: var(--rust);">Anti-Adversarial</span>
                 </div>
             </div>
-        </div>
-
+        </aside>
     </div>
 
     <script>
-        // ── Chart.js setup ──────────────────────────────────────────────────────────
-        const ctx = document.getElementById('roundChart').getContext('2d');
-        const roundChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Clean Updates',
-                        data: [],
-                        backgroundColor: '#1A7A6E88',
-                        borderColor: '#1A7A6E',
-                        borderWidth: 1,
-                        borderRadius: 2,
-                    },
-                    {
-                        label: 'Flagged Updates',
-                        data: [],
-                        backgroundColor: '#C84B3166',
-                        borderColor: '#C84B31',
-                        borderWidth: 1,
-                        borderRadius: 2,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#8B9BAA',
-                            font: { family: "'DM Mono', monospace", size: 10 },
-                            boxWidth: 12,
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: '#090B0F',
-                        titleColor: '#F5F0E8',
-                        bodyColor: '#8B9BAA',
-                        borderColor: '#1E2530',
-                        borderWidth: 1,
-                    }
-                },
-                scales: {
-                    x: {
-                        stacked: true,
-                        ticks: { color: '#8B9BAA', font: { family: "'DM Mono', monospace", size: 10 } },
-                        grid: { color: '#1E2530' },
-                    },
-                    y: {
-                        stacked: true,
-                        beginAtZero: true,
-                        ticks: { color: '#8B9BAA', font: { family: "'DM Mono', monospace", size: 10 }, stepSize: 1 },
-                        grid: { color: '#1E2530' },
-                    }
-                }
-            }
-        });
-
-        // ── Poll /api/status every 5s ───────────────────────────────────────────────
-        async function pollStatus() {
-            try {
-                const res = await fetch('/api/status');
-                if (!res.ok) return;
-                const data = await res.json();
-
-                document.getElementById('stat-round').textContent = data.current_round;
-                document.getElementById('stat-updates').textContent = data.total_updates_received;
-                document.getElementById('stat-flagged').textContent = data.total_flagged;
-                document.getElementById('stat-queue').textContent = data.queue_depth;
-
-                if (data.last_aggregation) {
-                    const d = new Date(data.last_aggregation * 1000);
-                    document.getElementById('stat-last').textContent = d.toLocaleTimeString();
-                }
-            } catch (e) { /* server may not be up yet */ }
-        }
-
-        // ── Poll /api/metrics every 10s ─────────────────────────────────────────────
-        async function pollMetrics() {
-            try {
-                const res = await fetch('/api/metrics');
-                if (!res.ok) return;
-                const data = await res.json();
-
-                updateRoundsTable(data.rounds || []);
-                updateChart(data.rounds || []);
-                updateClientList(data.clients || []);
-            } catch (e) { /* server may not be up yet */ }
-        }
-
-        function updateRoundsTable(rounds) {
-            const tbody = document.getElementById('rounds-tbody');
-            if (!rounds.length) return;
-            tbody.innerHTML = rounds.slice(0, 15).map(r => {
-                const ts = r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : '—';
-                const flaggedBadge = r.n_flagged > 0
-                    ? `<span class="badge-flagged">⚠ ${r.n_flagged}</span>`
-                    : `<span class="badge-clean">✓ 0</span>`;
-                return `<tr>
-            <td style="color:#C9922A; font-weight:500;">#${r.round_id}</td>
-            <td>${ts}</td>
-            <td style="color:#4ECDC4;">${r.n_updates}</td>
-            <td>${flaggedBadge}</td>
-        </tr>`;
-            }).join('');
-        }
-
-        function updateChart(rounds) {
-            const last20 = [...rounds].reverse().slice(-20);
-            roundChart.data.labels = last20.map(r => `#${r.round_id}`);
-            roundChart.data.datasets[0].data = last20.map(r => r.n_updates);
-            roundChart.data.datasets[1].data = last20.map(r => r.n_flagged);
-            roundChart.update('none');
-        }
-
-        function updateClientList(clients) {
-            document.getElementById('client-count').textContent = `${clients.length} client${clients.length !== 1 ? 's' : ''}`;
-            if (!clients.length) return;
-
-            const html = clients.map(c => {
-                const trust = c.total_updates > 0
-                    ? Math.max(0, 1 - c.flagged_count / c.total_updates)
-                    : 1.0;
-                const trustPct = Math.round(trust * 100);
-                const trustColor = trust > 0.8 ? '#4ECDC4' : trust > 0.5 ? '#C9922A' : '#C84B31';
-                const rowClass = c.flagged_count > 0 ? 'client-row flag-row' : 'client-row';
-                const lastSeen = c.last_seen ? new Date(c.last_seen).toLocaleTimeString() : '—';
-                return `<div class="${rowClass}">
-            <div class="client-id">
-                ${c.client_id.substring(0, 10)}…
-                <small>${c.total_updates} updates · ${c.flagged_count} flagged</small>
-            </div>
-            <div class="trust-bar-wrap">
-                <div class="trust-bar" style="width:${trustPct}%; background:${trustColor};"></div>
-            </div>
-            <div class="client-meta">${trustPct}%<br>${lastSeen}</div>
-        </div>`;
-            }).join('');
-
-            document.getElementById('client-list').innerHTML = html;
-        }
-
-        // ── Start polling ────────────────────────────────────────────────────────────
-        pollStatus();
-        pollMetrics();
-        setInterval(pollStatus, 5000);
-        setInterval(pollMetrics, 10000);
+        // Real-time live updates
+        setInterval(() => { window.location.reload(); }, 15000);
     </script>
-
 </body>
 
 </html>

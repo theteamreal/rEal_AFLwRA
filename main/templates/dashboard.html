@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FedGuard — Server Dashboard</title>
+    <meta name="description" content="FedGuard federated learning server monitoring dashboard">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,700;9..144,900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --ink: #0D0F14;
+            --paper: #F5F0E8;
+            --cream: #EDE8DC;
+            --rust: #C84B31;
+            --gold: #C9922A;
+            --teal: #1A7A6E;
+            --slate: #2C3E50;
+            --mist: #8B9BAA;
+            --rule: #D4C9B0;
+            --mono: 'DM Mono', monospace;
+            --serif: 'Fraunces', serif;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--ink);
+            color: var(--paper);
+            font-family: var(--mono);
+            min-height: 100vh;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            border-bottom: 1px solid #1E2530;
+            background: #090B0F;
+        }
+
+        .topbar-brand {
+            font-family: var(--serif);
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            color: var(--paper);
+        }
+
+        .topbar-brand span {
+            color: var(--rust);
+        }
+
+        .topbar-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            padding: 7px 18px;
+            border: 1px solid #2A3240;
+            background: transparent;
+            color: var(--mist);
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 2px;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .nav-btn:hover,
+        .nav-btn.active {
+            background: var(--rust);
+            color: white;
+            border-color: var(--rust);
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--teal);
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* ── STAT CARDS ── */
+        .metrics-bar {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            border-bottom: 1px solid #1E2530;
+        }
+
+        .metric-card {
+            padding: 24px 28px;
+            border-right: 1px solid #1E2530;
+            position: relative;
+        }
+
+        .metric-card:last-child {
+            border-right: none;
+        }
+
+        .metric-label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--mist);
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-family: var(--serif);
+            font-size: 38px;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .metric-value.green {
+            color: #4ECDC4;
+        }
+
+        .metric-value.red {
+            color: var(--rust);
+        }
+
+        .metric-value.gold {
+            color: var(--gold);
+        }
+
+        .metric-value.white {
+            color: var(--paper);
+        }
+
+        .metric-sub {
+            margin-top: 4px;
+            font-size: 10px;
+            color: var(--mist);
+        }
+
+        /* ── MAIN LAYOUT ── */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            min-height: calc(100vh - 57px - 100px);
+        }
+
+        .chart-panel {
+            padding: 32px;
+            border-right: 1px solid #1E2530;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--mist);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #1E2530;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title .badge {
+            font-size: 9px;
+            background: var(--teal);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 2px;
+            letter-spacing: 1px;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 220px;
+            margin-bottom: 32px;
+        }
+
+        /* ── ROUND TABLE ── */
+        .round-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11.5px;
+        }
+
+        .round-table th {
+            text-align: left;
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--mist);
+            padding: 8px 12px;
+            border-bottom: 1px solid #1E2530;
+        }
+
+        .round-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #141820;
+            vertical-align: middle;
+            color: #C8D0D8;
+        }
+
+        .round-table tr:hover td {
+            background: #141820;
+        }
+
+        .badge-flagged {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: var(--rust);
+        }
+
+        .badge-clean {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #4ECDC4;
+        }
+
+        /* ── CLIENT SIDEBAR ── */
+        .client-panel {
+            padding: 32px 24px;
+        }
+
+        .client-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #141820;
+        }
+
+        .client-id {
+            font-size: 12px;
+            color: var(--paper);
+            font-family: var(--mono);
+        }
+
+        .client-id small {
+            display: block;
+            font-size: 10px;
+            color: var(--mist);
+            margin-top: 2px;
+        }
+
+        .trust-bar-wrap {
+            flex: 1;
+            margin: 0 12px;
+            height: 4px;
+            background: #1E2530;
+            border-radius: 2px;
+        }
+
+        .trust-bar {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        .client-meta {
+            text-align: right;
+            font-size: 10px;
+            color: var(--mist);
+        }
+
+        .flag-row {
+            background: rgba(200, 75, 49, 0.07);
+        }
+
+        .flag-row .client-id {
+            color: var(--rust);
+        }
+
+        /* ── LIVE INDICATOR ── */
+        .live-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #4ECDC4;
+            padding: 4px 10px;
+            border: 1px solid #1A7A6E44;
+            border-radius: 100px;
+        }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--mist);
+            font-size: 12px;
+            line-height: 2;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            .metrics-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-panel {
+                border-right: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="topbar">
+        <div class="topbar-brand">Fed<span>Guard</span></div>
+        <div class="topbar-nav">
+            <span class="live-chip"><span class="status-dot"></span>LIVE</span>
+            <a href="/" class="nav-btn active">Dashboard</a>
+            <a href="/train/" class="nav-btn">Client Training</a>
+            <a href="/admin/" class="nav-btn">Admin</a>
+        </div>
+    </nav>
+
+    <!-- ── METRICS BAR ── -->
+    <div class="metrics-bar">
+        <div class="metric-card">
+            <div class="metric-label">Current Round</div>
+            <div class="metric-value white" id="stat-round">0</div>
+            <div class="metric-sub">global model version</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Total Updates</div>
+            <div class="metric-value green" id="stat-updates">0</div>
+            <div class="metric-sub">received by server</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Flagged Updates</div>
+            <div class="metric-value red" id="stat-flagged">0</div>
+            <div class="metric-sub">rejected as outliers</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Queue Depth</div>
+            <div class="metric-value gold" id="stat-queue">0</div>
+            <div class="metric-sub">pending aggregation</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Last Aggregation</div>
+            <div class="metric-value white" style="font-size:18px; letter-spacing:0;" id="stat-last">—</div>
+            <div class="metric-sub">server time</div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+
+        <!-- ── CHART + ROUNDS TABLE ── -->
+        <div class="chart-panel">
+            <div class="panel-title">
+                Aggregation History
+                <span class="badge">Updates every 10s</span>
+            </div>
+
+            <div class="chart-wrap">
+                <canvas id="roundChart"></canvas>
+            </div>
+
+            <div class="panel-title" style="margin-top:8px;">
+                Recent Rounds
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="round-table">
+                    <thead>
+                        <tr>
+                            <th>Round</th>
+                            <th>Time</th>
+                            <th>Clean</th>
+                            <th>Flagged</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rounds-tbody">
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state">Waiting for first aggregation round…</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── CLIENT SIDEBAR ── -->
+        <div class="client-panel">
+            <div class="panel-title">
+                Client Registry
+                <span class="badge" id="client-count">0 clients</span>
+            </div>
+            <div id="client-list">
+                <div class="empty-state">No clients connected yet.<br>Open <code>/train/</code> on a client laptop.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ── Chart.js setup ──────────────────────────────────────────────────────────
+        const ctx = document.getElementById('roundChart').getContext('2d');
+        const roundChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Clean Updates',
+                        data: [],
+                        backgroundColor: '#1A7A6E88',
+                        borderColor: '#1A7A6E',
+                        borderWidth: 1,
+                        borderRadius: 2,
+                    },
+                    {
+                        label: 'Flagged Updates',
+                        data: [],
+                        backgroundColor: '#C84B3166',
+                        borderColor: '#C84B31',
+                        borderWidth: 1,
+                        borderRadius: 2,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#8B9BAA',
+                            font: { family: "'DM Mono', monospace", size: 10 },
+                            boxWidth: 12,
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#090B0F',
+                        titleColor: '#F5F0E8',
+                        bodyColor: '#8B9BAA',
+                        borderColor: '#1E2530',
+                        borderWidth: 1,
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        ticks: { color: '#8B9BAA', font: { family: "'DM Mono', monospace", size: 10 } },
+                        grid: { color: '#1E2530' },
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: { color: '#8B9BAA', font: { family: "'DM Mono', monospace", size: 10 }, stepSize: 1 },
+                        grid: { color: '#1E2530' },
+                    }
+                }
+            }
+        });
+
+        // ── Poll /api/status every 5s ───────────────────────────────────────────────
+        async function pollStatus() {
+            try {
+                const res = await fetch('/api/status');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                document.getElementById('stat-round').textContent = data.current_round;
+                document.getElementById('stat-updates').textContent = data.total_updates_received;
+                document.getElementById('stat-flagged').textContent = data.total_flagged;
+                document.getElementById('stat-queue').textContent = data.queue_depth;
+
+                if (data.last_aggregation) {
+                    const d = new Date(data.last_aggregation * 1000);
+                    document.getElementById('stat-last').textContent = d.toLocaleTimeString();
+                }
+            } catch (e) { /* server may not be up yet */ }
+        }
+
+        // ── Poll /api/metrics every 10s ─────────────────────────────────────────────
+        async function pollMetrics() {
+            try {
+                const res = await fetch('/api/metrics');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                updateRoundsTable(data.rounds || []);
+                updateChart(data.rounds || []);
+                updateClientList(data.clients || []);
+            } catch (e) { /* server may not be up yet */ }
+        }
+
+        function updateRoundsTable(rounds) {
+            const tbody = document.getElementById('rounds-tbody');
+            if (!rounds.length) return;
+            tbody.innerHTML = rounds.slice(0, 15).map(r => {
+                const ts = r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : '—';
+                const flaggedBadge = r.n_flagged > 0
+                    ? `<span class="badge-flagged">⚠ ${r.n_flagged}</span>`
+                    : `<span class="badge-clean">✓ 0</span>`;
+                return `<tr>
+            <td style="color:#C9922A; font-weight:500;">#${r.round_id}</td>
+            <td>${ts}</td>
+            <td style="color:#4ECDC4;">${r.n_updates}</td>
+            <td>${flaggedBadge}</td>
+        </tr>`;
+            }).join('');
+        }
+
+        function updateChart(rounds) {
+            const last20 = [...rounds].reverse().slice(-20);
+            roundChart.data.labels = last20.map(r => `#${r.round_id}`);
+            roundChart.data.datasets[0].data = last20.map(r => r.n_updates);
+            roundChart.data.datasets[1].data = last20.map(r => r.n_flagged);
+            roundChart.update('none');
+        }
+
+        function updateClientList(clients) {
+            document.getElementById('client-count').textContent = `${clients.length} client${clients.length !== 1 ? 's' : ''}`;
+            if (!clients.length) return;
+
+            const html = clients.map(c => {
+                const trust = c.total_updates > 0
+                    ? Math.max(0, 1 - c.flagged_count / c.total_updates)
+                    : 1.0;
+                const trustPct = Math.round(trust * 100);
+                const trustColor = trust > 0.8 ? '#4ECDC4' : trust > 0.5 ? '#C9922A' : '#C84B31';
+                const rowClass = c.flagged_count > 0 ? 'client-row flag-row' : 'client-row';
+                const lastSeen = c.last_seen ? new Date(c.last_seen).toLocaleTimeString() : '—';
+                return `<div class="${rowClass}">
+            <div class="client-id">
+                ${c.client_id.substring(0, 10)}…
+                <small>${c.total_updates} updates · ${c.flagged_count} flagged</small>
+            </div>
+            <div class="trust-bar-wrap">
+                <div class="trust-bar" style="width:${trustPct}%; background:${trustColor};"></div>
+            </div>
+            <div class="client-meta">${trustPct}%<br>${lastSeen}</div>
+        </div>`;
+            }).join('');
+
+            document.getElementById('client-list').innerHTML = html;
+        }
+
+        // ── Start polling ────────────────────────────────────────────────────────────
+        pollStatus();
+        pollMetrics();
+        setInterval(pollStatus, 5000);
+        setInterval(pollMetrics, 10000);
+    </script>
+
+</body>
+
+</html>

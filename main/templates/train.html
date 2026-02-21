@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FedGuard — Client Training</title>
+    <meta name="description"
+        content="FedGuard in-browser federated learning client — train on your private data without sending it to the server">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,700;9..144,900&display=swap"
+        rel="stylesheet">
+
+    <!-- TF.js from CDN — zero client-side install needed -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+    <!-- PapaParse for in-browser CSV parsing — data never leaves the browser -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- Chart.js for live loss chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --ink: #0D0F14;
+            --paper: #F5F0E8;
+            --cream: #EDE8DC;
+            --rust: #C84B31;
+            --gold: #C9922A;
+            --teal: #1A7A6E;
+            --mist: #8B9BAA;
+            --rule: #D4C9B0;
+            --mono: 'DM Mono', monospace;
+            --serif: 'Fraunces', serif;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            background: var(--paper);
+            color: var(--ink);
+            font-family: var(--mono);
+            min-height: 100vh;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            background: var(--ink);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 32px;
+            border-bottom: 1px solid #1E2530;
+        }
+
+        .topbar-brand {
+            font-family: var(--serif);
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--paper);
+            letter-spacing: -1px;
+        }
+
+        .topbar-brand span {
+            color: var(--rust);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .client-id-display {
+            font-size: 10px;
+            color: var(--mist);
+            letter-spacing: 1px;
+        }
+
+        .client-id-display strong {
+            color: #4ECDC4;
+            font-size: 12px;
+        }
+
+        .nav-link {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--mist);
+            text-decoration: none;
+            padding: 6px 14px;
+            border: 1px solid #2A3240;
+            border-radius: 2px;
+        }
+
+        .nav-link:hover {
+            color: var(--paper);
+            border-color: #444D5C;
+        }
+
+        /* ── STATUS BANNER ── */
+        #status-banner {
+            padding: 10px 32px;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .banner-idle {
+            background: var(--cream);
+            color: var(--mist);
+            border-bottom: 1px solid var(--rule);
+        }
+
+        .banner-success {
+            background: #EEF7F5;
+            color: var(--teal);
+            border-bottom: 2px solid var(--teal);
+        }
+
+        .banner-error {
+            background: #FDF0EE;
+            color: var(--rust);
+            border-bottom: 2px solid var(--rust);
+        }
+
+        .banner-training {
+            background: #FDF6EA;
+            color: var(--gold);
+            border-bottom: 2px solid var(--gold);
+        }
+
+        /* ── MAIN GRID ── */
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 32px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            border: 2px solid var(--ink);
+            background: white;
+        }
+
+        .card-header {
+            background: var(--ink);
+            color: var(--paper);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .card-badge {
+            font-size: 9px;
+            background: var(--rust);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 100px;
+            letter-spacing: 1px;
+        }
+
+        .card-badge.green {
+            background: var(--teal);
+        }
+
+        .card-badge.gold {
+            background: var(--gold);
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* ── STEP FLOW ── */
+        .step-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .step-item {
+            display: grid;
+            grid-template-columns: 40px 1fr;
+            min-height: 70px;
+            position: relative;
+        }
+
+        .step-item::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 40px;
+            bottom: 0;
+            width: 2px;
+            background: var(--rule);
+        }
+
+        .step-item:last-child::before {
+            display: none;
+        }
+
+        .step-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--cream);
+            border: 2px solid var(--rule);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--mist);
+            flex-shrink: 0;
+            margin-top: 6px;
+            transition: all 0.3s;
+        }
+
+        .step-num.active {
+            background: var(--rust);
+            border-color: var(--rust);
+            color: white;
+        }
+
+        .step-num.done {
+            background: var(--teal);
+            border-color: var(--teal);
+            color: white;
+        }
+
+        .step-content {
+            padding: 6px 0 20px 16px;
+        }
+
+        .step-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ink);
+            margin-bottom: 4px;
+        }
+
+        .step-desc {
+            font-size: 11px;
+            color: var(--mist);
+            line-height: 1.6;
+        }
+
+        /* ── DROP ZONE ── */
+        .dropzone {
+            border: 2px dashed var(--rule);
+            background: var(--cream);
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            margin: 16px 0;
+        }
+
+        .dropzone:hover,
+        .dropzone.dragging {
+            border-color: var(--teal);
+            background: #EEF7F5;
+        }
+
+        .dropzone-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .dropzone-text {
+            font-size: 12px;
+            color: var(--mist);
+            line-height: 1.7;
+        }
+
+        .dropzone-text strong {
+            color: var(--teal);
+            display: block;
+            font-size: 13px;
+        }
+
+        #csv-input {
+            display: none;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.15s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--rust);
+        }
+
+        .btn-teal {
+            background: var(--teal);
+            color: white;
+        }
+
+        .btn-teal:hover:not(:disabled) {
+            background: #145F54;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        /* ── TRAINING CONTROLS ── */
+        .epoch-config {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .config-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .config-label {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--mist);
+        }
+
+        .config-input {
+            background: var(--cream);
+            border: 1px solid var(--rule);
+            padding: 8px 12px;
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--ink);
+            border-radius: 2px;
+            width: 100%;
+        }
+
+        .config-input:focus {
+            outline: 2px solid var(--teal);
+            border-color: var(--teal);
+        }
+
+        /* ── LOSS CHART ── */
+        .chart-wrap {
+            position: relative;
+            height: 180px;
+            margin: 16px 0;
+        }
+
+        /* ── DATA PREVIEW ── */
+        .data-preview {
+            background: var(--ink);
+            color: #7EBCBA;
+            font-size: 11px;
+            padding: 14px 16px;
+            border-radius: 2px;
+            line-height: 1.8;
+            max-height: 100px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+
+        /* ── MODEL STATUS ── */
+        .model-status {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .status-item {
+            background: var(--cream);
+            padding: 10px 14px;
+            border-left: 3px solid var(--rule);
+        }
+
+        .status-item.active {
+            border-left-color: var(--teal);
+        }
+
+        .status-item-label {
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--mist);
+            margin-bottom: 2px;
+        }
+
+        .status-item-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--ink);
+        }
+
+        /* ── PRIVACY NOTE ── */
+        .privacy-note {
+            background: #EEF7F5;
+            border-left: 3px solid var(--teal);
+            padding: 12px 16px;
+            font-size: 11px;
+            color: var(--teal);
+            line-height: 1.7;
+            margin: 16px 0;
+        }
+
+        .privacy-note strong {
+            display: block;
+            margin-bottom: 2px;
+            font-size: 12px;
+        }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            background: var(--ink);
+            color: var(--paper);
+            font-size: 12px;
+            border-radius: 4px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(.34, 1.56, .64, 1);
+            max-width: 320px;
+            z-index: 1000;
+        }
+
+        #toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        #toast.toast-success {
+            border-left: 4px solid var(--teal);
+        }
+
+        #toast.toast-error {
+            border-left: 4px solid var(--rust);
+        }
+
+        #toast.toast-info {
+            border-left: 4px solid var(--gold);
+        }
+
+        /* ── PROGRESS BAR ── */
+        .progress-bar-wrap {
+            height: 4px;
+            background: var(--cream);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--rust);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        @media (max-width: 800px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .model-status {
+                grid-template-columns: 1fr;
+            }
+
+            .epoch-config {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="topbar">
+        <div class="topbar-brand">Fed<span>Guard</span> — Client Node</div>
+        <div class="topbar-right">
+            <div class="client-id-display">
+                Your ID: <strong id="my-client-id">generating…</strong>
+            </div>
+            <a href="/" class="nav-link">← Dashboard</a>
+        </div>
+    </nav>
+
+    <div id="status-banner" class="banner-idle">
+        <span id="banner-icon">ℹ</span>
+        <span id="banner-text">Initialising… fetching global model from server.</span>
+    </div>
+
+    <div class="page">
+        <div class="grid">
+
+            <!-- ── LEFT: STEP-BY-STEP GUIDE + DATA UPLOAD ── -->
+            <div>
+                <!-- How it works -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <span class="card-title">How Federated Learning Works Here</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="step-flow">
+                            <div class="step-item">
+                                <div class="step-num done" id="step-1">1</div>
+                                <div class="step-content">
+                                    <div class="step-title">Fetch Global Model</div>
+                                    <div class="step-desc">Download current weights from server. Your browser
+                                        reconstructs the model using TensorFlow.js.</div>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-num" id="step-2">2</div>
+                                <div class="step-content">
+                                    <div class="step-title">Upload Your Local Data</div>
+                                    <div class="step-desc">Drop a CSV file. It's parsed entirely in your browser —
+                                        <strong>never sent to the server</strong>.</div>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-num" id="step-3">3</div>
+                                <div class="step-content">
+                                    <div class="step-title">Train Locally in Browser</div>
+                                    <div class="step-desc">TF.js runs gradient descent on your data. Watch the loss
+                                        curve drop in real time.</div>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-num" id="step-4">4</div>
+                                <div class="step-content">
+                                    <div class="step-title">Submit Weight Update</div>
+                                    <div class="step-desc">Only model weights are sent — never raw data. Server
+                                        aggregates contributions from all clients.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data upload -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Step 2 — Upload Local Data</span>
+                        <span class="card-badge" id="data-badge">No data loaded</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="privacy-note">
+                            <strong>🔒 Your data stays in your browser</strong>
+                            Drop any CSV file below. PapaParse reads it locally. The raw data never touches the network.
+                            Only the trained model weights leave your machine.
+                        </div>
+
+                        <div class="dropzone" id="dropzone" onclick="document.getElementById('csv-input').click()">
+                            <div class="dropzone-icon">📂</div>
+                            <div class="dropzone-text">
+                                <strong>Click or drag-drop a CSV file</strong>
+                                Last column = label (integer class 0–9)<br>
+                                Other columns = features (up to 20 used)
+                            </div>
+                        </div>
+                        <input type="file" id="csv-input" accept=".csv">
+
+                        <div id="data-preview" class="data-preview" style="display:none;"></div>
+
+                        <div id="no-csv-hint"
+                            style="margin-top:12px; font-size:11px; color:var(--mist); line-height:1.8;">
+                            <strong style="color:var(--gold);">No CSV?</strong> Click "Generate Demo Data" to create
+                            synthetic training data in-browser for testing.
+                        </div>
+                        <div class="btn-group">
+                            <button id="btn-gen-demo" class="btn btn-primary" onclick="generateDemoData()">⚡ Generate
+                                Demo Data</button>
+                            <button id="btn-clear-data" class="btn" style="background:var(--cream);color:var(--ink);"
+                                onclick="clearData()" disabled>✕ Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── RIGHT: MODEL STATUS + TRAINING ── -->
+            <div>
+                <!-- Model status -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <span class="card-title">Global Model Status</span>
+                        <span class="card-badge green" id="model-badge">Fetching…</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="model-status">
+                            <div class="status-item active">
+                                <div class="status-item-label">Server Round</div>
+                                <div class="status-item-value" id="server-round">—</div>
+                            </div>
+                            <div class="status-item active">
+                                <div class="status-item-label">Model Type</div>
+                                <div class="status-item-value" id="model-type">—</div>
+                            </div>
+                            <div class="status-item active">
+                                <div class="status-item-label">Input Dims</div>
+                                <div class="status-item-value" id="input-dim">—</div>
+                            </div>
+                            <div class="status-item active">
+                                <div class="status-item-label">Output Classes</div>
+                                <div class="status-item-value" id="output-dim">—</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button id="btn-refresh-model" class="btn btn-primary" onclick="fetchModel()">↻ Refresh
+                                Model</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Step 3 — Train + Submit</span>
+                        <span class="card-badge gold" id="training-badge">Ready</span>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="epoch-config">
+                            <div class="config-row">
+                                <label class="config-label" for="epochs-input">Epochs</label>
+                                <input class="config-input" type="number" id="epochs-input" value="5" min="1" max="50">
+                            </div>
+                            <div class="config-row">
+                                <label class="config-label" for="lr-input">Learning Rate</label>
+                                <input class="config-input" type="number" id="lr-input" value="0.01" min="0.0001"
+                                    max="1" step="0.001">
+                            </div>
+                        </div>
+
+                        <div class="progress-bar-wrap" id="progress-wrap" style="display:none;">
+                            <div class="progress-bar" id="progress-bar" style="width:0%;"></div>
+                        </div>
+
+                        <div class="chart-wrap">
+                            <canvas id="lossChart"></canvas>
+                        </div>
+
+                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:16px;">
+                            <span style="font-size:11px; color:var(--mist);">Final loss:</span>
+                            <span id="final-loss"
+                                style="font-family:var(--mono); font-size:13px; color:var(--ink);">—</span>
+                        </div>
+
+                        <div class="btn-group">
+                            <button id="btn-train" class="btn btn-primary" onclick="trainAndSubmit()" disabled>
+                                ▶ Train & Submit
+                            </button>
+                            <button id="btn-train-only" class="btn" style="background:var(--cream);color:var(--ink);"
+                                onclick="trainOnly()" disabled>
+                                Train Only
+                            </button>
+                        </div>
+
+                        <div
+                            style="margin-top:16px; padding-top:16px; border-top: 1px solid var(--rule); font-size:11px; color:var(--mist); line-height:1.8;">
+                            <strong style="color:var(--ink);">What gets sent to the server:</strong><br>
+                            client_id, round_id, trained weights (W+b), sample count, final loss.<br>
+                            <strong style="color:var(--rust);">Not sent:</strong> your raw CSV data.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast"></div>
+
+    <script>
+        // ══════════════════════════════════════════════════════════════════════════════
+        // FedGuard Client — train.js (inline)
+        // ══════════════════════════════════════════════════════════════════════════════
+
+        // ── Client ID (persistent across page loads) ─────────────────────────────────
+        let clientId = localStorage.getItem('fedguard_client_id');
+        if (!clientId) {
+            clientId = 'client_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
+            localStorage.setItem('fedguard_client_id', clientId);
+        }
+        document.getElementById('my-client-id').textContent = clientId.substring(0, 18) + '…';
+
+        // ── State ────────────────────────────────────────────────────────────────────
+        let tfModel = null;
+        let localData = null;  // { X: tf.Tensor2D, y: tf.Tensor2D, nSamples: number }
+        let roundId = 0;
+        let inputDim = 20;
+        let outputDim = 10;
+        let isTraining = false;
+
+        // ── Loss Chart ───────────────────────────────────────────────────────────────
+        const lossCtx = document.getElementById('lossChart').getContext('2d');
+        const lossChart = new Chart(lossCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Training Loss',
+                    data: [],
+                    borderColor: '#C84B31',
+                    backgroundColor: 'rgba(200,75,49,0.08)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#C84B31',
+                    tension: 0.3,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#8B9BAA', font: { family: "'DM Mono', monospace", size: 10 }, boxWidth: 12 } },
+                    tooltip: {
+                        backgroundColor: '#0D0F14',
+                        titleColor: '#F5F0E8',
+                        bodyColor: '#8B9BAA',
+                        borderColor: '#1E2530',
+                        borderWidth: 1,
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#8B9BAA', font: { family: "'DM Mono', monospace", size: 10 } }, grid: { color: '#F0EBE0' } },
+                    y: { beginAtZero: false, ticks: { color: '#8B9BAA', font: { family: "'DM Mono', monospace", size: 10 } }, grid: { color: '#F0EBE0' } }
+                }
+            }
+        });
+
+        // ── Banner helper ─────────────────────────────────────────────────────────────
+        function setBanner(text, type = 'idle') {
+            const banner = document.getElementById('status-banner');
+            const icons = { idle: 'ℹ', success: '✓', error: '✕', training: '⟳' };
+            banner.className = `banner-${type}`;
+            document.getElementById('banner-icon').textContent = icons[type] || 'ℹ';
+            document.getElementById('banner-text').textContent = text;
+        }
+
+        // ── Toast helper ──────────────────────────────────────────────────────────────
+        let toastTimer = null;
+        function showToast(message, type = 'info') {
+            const t = document.getElementById('toast');
+            t.textContent = message;
+            t.className = `show toast-${type}`;
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { t.className = ''; }, 4000);
+        }
+
+        // ── Step indicator ────────────────────────────────────────────────────────────
+        function setStep(n, status) {   // status: 'active' | 'done' | ''
+            const el = document.getElementById(`step-${n}`);
+            if (!el) return;
+            el.className = `step-num ${status}`;
+        }
+
+        // ── Build TF.js model from config ─────────────────────────────────────────────
+        function buildModel(inDim, outDim) {
+            const model = tf.sequential();
+            model.add(tf.layers.dense({
+                units: outDim,
+                inputShape: [inDim],
+                activation: 'softmax',
+                name: 'dense',
+                kernelInitializer: 'zeros',
+                biasInitializer: 'zeros',
+            }));
+            return model;
+        }
+
+        // ── Fetch global model from server ───────────────────────────────────────────
+        async function fetchModel() {
+            setBanner('Fetching global model from server…', 'idle');
+            document.getElementById('model-badge').textContent = 'Fetching…';
+            try {
+                const res = await fetch('/api/get-model');
+                if (!res.ok) throw new Error(`Server returned ${res.status}`);
+                const data = await res.json();
+
+                roundId = data.round_id;
+                inputDim = data.model_config.input_dim;
+                outputDim = data.model_config.output_dim;
+
+                // (Re)build model with correct dimensions
+                if (tfModel) { tfModel.dispose(); }
+                tfModel = buildModel(inputDim, outputDim);
+
+                // Load weights into TF.js layers
+                const W = tf.tensor2d(data.weights.W);
+                const b = tf.tensor1d(data.weights.b);
+                tfModel.getLayer('dense').setWeights([W, b]);
+                W.dispose();
+                b.dispose();
+
+                // Update UI
+                document.getElementById('server-round').textContent = roundId;
+                document.getElementById('model-type').textContent = data.model_config.type;
+                document.getElementById('input-dim').textContent = inputDim;
+                document.getElementById('output-dim').textContent = outputDim;
+                document.getElementById('model-badge').textContent = `Round ${roundId}`;
+
+                setBanner(`✓ Global model loaded — Round ${roundId}. Now upload your local data.`, 'success');
+                setStep(1, 'done');
+                updateTrainButton();
+                showToast(`Model round ${roundId} loaded`, 'success');
+            } catch (e) {
+                setBanner(`Error fetching model: ${e.message}`, 'error');
+                document.getElementById('model-badge').textContent = 'Error';
+                showToast(`Failed to load model: ${e.message}`, 'error');
+            }
+        }
+
+        // ── CSV Drop Zone ─────────────────────────────────────────────────────────────
+        const dropzone = document.getElementById('dropzone');
+
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragging'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragging'));
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.classList.remove('dragging');
+            const file = e.dataTransfer.files[0];
+            if (file) parseCSV(file);
+        });
+
+        document.getElementById('csv-input').addEventListener('change', e => {
+            if (e.target.files[0]) parseCSV(e.target.files[0]);
+        });
+
+        function parseCSV(file) {
+            setBanner('Parsing CSV in your browser…', 'idle');
+            Papa.parse(file, {
+                header: false,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    try {
+                        loadRawRows(results.data, file.name);
+                    } catch (e) {
+                        showToast(`CSV parse error: ${e.message}`, 'error');
+                        setBanner(`CSV error: ${e.message}`, 'error');
+                    }
+                },
+                error: (e) => showToast(`PapaParse error: ${e.message}`, 'error'),
+            });
+        }
+
+        function loadRawRows(rows, filename) {
+            // Last column = label, rest = features
+            const nFeatures = Math.min(rows[0].length - 1, inputDim);
+            const X_raw = rows.map(r => {
+                const features = r.slice(0, nFeatures).map(Number);
+                // Pad to inputDim if needed
+                while (features.length < inputDim) features.push(0);
+                return features.slice(0, inputDim);
+            });
+            const y_raw = rows.map(r => {
+                const label = parseInt(r[r.length - 1]) || 0;
+                return Math.min(Math.max(label, 0), outputDim - 1);
+            });
+
+            // Dispose previous tensors
+            if (localData) { localData.X.dispose(); localData.y.dispose(); }
+
+            const X = tf.tensor2d(X_raw, [X_raw.length, inputDim]);
+            const y = tf.oneHot(tf.tensor1d(y_raw, 'int32'), outputDim).cast('float32');
+
+            localData = { X, y, nSamples: X_raw.length };
+
+            // Preview
+            const preview = document.getElementById('data-preview');
+            preview.style.display = 'block';
+            preview.textContent = `✓ Loaded: ${filename}\n` +
+                `  Rows: ${X_raw.length} | Features: ${nFeatures} (padded to ${inputDim}) | Classes: ${outputDim}\n` +
+                `  Sample row[0]: [${X_raw[0].slice(0, 5).map(v => v.toFixed(3)).join(', ')}…] → label ${y_raw[0]}`;
+
+            document.getElementById('data-badge').textContent = `${X_raw.length} rows loaded`;
+            document.getElementById('data-badge').style.background = 'var(--teal)';
+            document.getElementById('btn-clear-data').disabled = false;
+            document.getElementById('no-csv-hint').style.display = 'none';
+
+            setStep(2, 'done');
+            updateTrainButton();
+            setBanner(`✓ ${X_raw.length} samples loaded from ${filename}. Raw data stays in your browser.`, 'success');
+            showToast(`${X_raw.length} samples parsed`, 'success');
+        }
+
+        // ── Generate synthetic demo data ──────────────────────────────────────────────
+        function generateDemoData() {
+            const n = 300;
+            const rows = [];
+            for (let i = 0; i < n; i++) {
+                const label = Math.floor(Math.random() * outputDim);
+                const features = Array.from({ length: inputDim }, (_, j) =>
+                    (Math.random() - 0.5) * 2 + (label === j % outputDim ? 1 : 0)
+                );
+                rows.push([...features, label]);
+            }
+            loadRawRows(rows, 'demo_synthetic.csv');
+        }
+
+        function clearData() {
+            if (localData) { localData.X.dispose(); localData.y.dispose(); localData = null; }
+            document.getElementById('data-preview').style.display = 'none';
+            document.getElementById('data-badge').textContent = 'No data loaded';
+            document.getElementById('data-badge').style.background = '';
+            document.getElementById('btn-clear-data').disabled = true;
+            document.getElementById('no-csv-hint').style.display = 'block';
+            setStep(2, '');
+            updateTrainButton();
+            showToast('Data cleared', 'info');
+        }
+
+        // ── Enable train button when both model + data are ready ─────────────────────
+        function updateTrainButton() {
+            const ready = tfModel !== null && localData !== null && !isTraining;
+            document.getElementById('btn-train').disabled = !ready;
+            document.getElementById('btn-train-only').disabled = !ready;
+        }
+
+        // ── Train and submit ──────────────────────────────────────────────────────────
+        async function trainOnly() { await doTrain(false); }
+        async function trainAndSubmit() { await doTrain(true); }
+
+        async function doTrain(submit) {
+            if (!tfModel || !localData || isTraining) return;
+            isTraining = true;
+            updateTrainButton();
+
+            const epochs = parseInt(document.getElementById('epochs-input').value) || 5;
+            const lr = parseFloat(document.getElementById('lr-input').value) || 0.01;
+
+            document.getElementById('training-badge').textContent = 'Training…';
+            document.getElementById('progress-wrap').style.display = 'block';
+            document.getElementById('progress-bar').style.width = '0%';
+            setBanner('Training locally in your browser… loss curve updating.', 'training');
+            setStep(3, 'active');
+
+            // Reset loss chart
+            lossChart.data.labels = [];
+            lossChart.data.datasets[0].data = [];
+            lossChart.update('none');
+
+            // Compile
+            tfModel.compile({
+                optimizer: tf.train.adam(lr),
+                loss: 'categoricalCrossentropy',
+                metrics: ['accuracy'],
+            });
+
+            let finalLoss = null;
+
+            try {
+                await tfModel.fit(localData.X, localData.y, {
+                    epochs,
+                    batchSize: Math.min(32, localData.nSamples),
+                    shuffle: true,
+                    callbacks: {
+                        onEpochEnd: (epoch, logs) => {
+                            const loss = logs.loss;
+                            finalLoss = loss;
+                            lossChart.data.labels.push(`Epoch ${epoch + 1}`);
+                            lossChart.data.datasets[0].data.push(parseFloat(loss.toFixed(5)));
+                            lossChart.update();
+                            document.getElementById('progress-bar').style.width = `${((epoch + 1) / epochs) * 100}%`;
+                            document.getElementById('final-loss').textContent = loss.toFixed(5);
+                        }
+                    }
+                });
+
+                setStep(3, 'done');
+                setBanner(`✓ Training complete! Final loss: ${finalLoss?.toFixed(5)}. ${submit ? 'Submitting weights…' : 'Weights ready.'}`, 'success');
+
+                if (submit) {
+                    await submitWeights(finalLoss);
+                } else {
+                    showToast('Training done. Click "Train & Submit" to share weights.', 'info');
+                }
+            } catch (e) {
+                setBanner(`Training error: ${e.message}`, 'error');
+                showToast(`Training failed: ${e.message}`, 'error');
+            } finally {
+                isTraining = false;
+                document.getElementById('training-badge').textContent = 'Done';
+                document.getElementById('progress-wrap').style.display = 'none';
+                updateTrainButton();
+            }
+        }
+
+        // ── Submit weights to server ──────────────────────────────────────────────────
+        async function submitWeights(finalLoss) {
+            try {
+                setStep(4, 'active');
+                setBanner('Submitting weight update to server…', 'training');
+
+                const [W, b] = tfModel.getLayer('dense').getWeights().map(t => t.arraySync());
+
+                const payload = {
+                    client_id: clientId,
+                    round_id: roundId,
+                    weights: { W, b },
+                    n_samples: localData.nSamples,
+                    local_loss: finalLoss,
+                };
+
+                const res = await fetch('/api/submit-update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await res.json();
+
+                if (res.status === 202) {
+                    setStep(4, 'done');
+                    if (data.status === 'flagged') {
+                        setBanner('⚠ Update submitted but flagged by server outlier detection. The server will investigate.', 'error');
+                        showToast('Update flagged (possible outlier)', 'error');
+                    } else {
+                        setBanner(`✓ Update submitted successfully! Server round: ${data.current_round}. Queue: ${data.queue_depth} pending.`, 'success');
+                        showToast('Weight update accepted by server ✓', 'success');
+                    }
+                } else if (res.status === 409) {
+                    setBanner(`✕ Stale update rejected. ${data.detail?.message || 'Round too old.'}`, 'error');
+                    showToast('Stale update rejected — refresh model first', 'error');
+                } else {
+                    throw new Error(`Server error ${res.status}: ${JSON.stringify(data)}`);
+                }
+            } catch (e) {
+                setBanner(`Submit failed: ${e.message}`, 'error');
+                showToast(`Submit failed: ${e.message}`, 'error');
+            }
+        }
+
+        // ── Poll /api/status every 5s to track server round ──────────────────────────
+        async function pollServerStatus() {
+            try {
+                const res = await fetch('/api/status');
+                if (!res.ok) return;
+                const data = await res.json();
+                const serverRound = data.current_round;
+                document.getElementById('server-round').textContent = serverRound;
+
+                // If server round advanced beyond ours, suggest refresh
+                if (serverRound > roundId && tfModel) {
+                    document.getElementById('model-badge').textContent = `🔄 Round ${serverRound} available`;
+                }
+            } catch (e) { /* server may be down */ }
+        }
+
+        // ── Init ─────────────────────────────────────────────────────────────────────
+        fetchModel();
+        setInterval(pollServerStatus, 5000);
+    </script>
+
+</body>
+
+</html>

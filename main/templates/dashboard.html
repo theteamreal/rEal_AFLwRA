@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fedora — Unified Cluster Hub</title>
+    <title>Fedora Hub — Administrative Control</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@700;900&display=swap"
         rel="stylesheet">
@@ -295,6 +295,58 @@
             border-radius: 6px;
         }
 
+        .rollback-btn {
+            padding: 4px 10px;
+            border: 1px solid rgba(74, 144, 226, 0.3);
+            background: rgba(74, 144, 226, 0.06);
+            color: var(--fedora-blue);
+            border-radius: 4px;
+            font-family: var(--mono);
+            font-size: 9px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .rollback-btn:hover {
+            background: rgba(74, 144, 226, 0.18);
+            border-color: var(--fedora-blue);
+        }
+
+        .rollback-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .version-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--glass-border);
+            gap: 8px;
+        }
+
+        .version-row:last-child {
+            border-bottom: none;
+        }
+
+        .version-tag {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--fedora-cyan);
+            font-family: var(--serif);
+            min-width: 36px;
+        }
+
+        .version-meta {
+            font-size: 10px;
+            color: var(--text-secondary);
+            flex: 1;
+            line-height: 1.5;
+        }
+
         @media (max-width: 1100px) {
             .container {
                 grid-template-columns: 1fr;
@@ -321,8 +373,11 @@
         <main>
             <h1>Intelligence <span>Cluster</span></h1>
             <p class="lead">
-                Welcome back, <span style="color: var(--fedora-blue); font-weight: 700;">{{ user.username }}</span>.
+                Welcome back, Administrator <span style="color: var(--fedora-blue); font-weight: 700;">{{ user.username
+                    }}</span>.
                 Unified Asynchronous Federated Control Center monitoring real-time model evolution.
+                <span class="badge badge-accepted" style="margin-left: 10px; font-size: 8px;">Host Administrative
+                    View</span>
             </p>
 
             <div class="stats-row">
@@ -400,6 +455,21 @@
             </div>
 
             <div class="section-header" style="margin-top: 50px;">
+                <h2>Version History</h2>
+                <div style="display:flex;gap:6px;">
+                    <button class="rollback-btn" onclick="deleteLatest()" id="btn-delete-latest"
+                        style="border-color:rgba(255,77,77,0.3);background:rgba(255,77,77,0.06);color:var(--fedora-danger);">
+                        ⌫ Delete Latest
+                    </button>
+                    <button class="rollback-btn" onclick="loadVersions()" style="font-size:9px;">↻ Refresh</button>
+                </div>
+            </div>
+            <div class="glass-card" style="padding: 24px;" id="version-history-panel">
+                <div style="text-align:center; padding:16px; font-size:11px; color:var(--text-secondary);">Loading...
+                </div>
+            </div>
+
+            <div class="section-header" style="margin-top: 50px;">
                 <h2>Host Status</h2>
             </div>
             <div class="glass-card"
@@ -421,15 +491,104 @@
     </div>
 
     <script>
-        // High-frequency live polling
+        // ── Live polling (main + aside) ─────────────────────────────────────
         setInterval(() => {
             fetch('/').then(res => res.text()).then(html => {
                 const parser = new DOMParser();
                 const newDoc = parser.parseFromString(html, 'text/html');
-                document.querySelector('main').innerHTML = newDoc.querySelector('main').innerHTML;
-                document.querySelector('aside').innerHTML = newDoc.querySelector('aside').innerHTML;
+                const main = newDoc.querySelector('main');
+                if (main) document.querySelector('main').innerHTML = main.innerHTML;
             });
         }, 10000);
+
+        // ── Version History ─────────────────────────────────────────────────
+        async function loadVersions() {
+            const panel = document.getElementById('version-history-panel');
+            panel.innerHTML = '<div style="text-align:center;padding:16px;font-size:11px;color:var(--text-secondary);">Loading...</div>';
+            try {
+                const res = await fetch('/api/fl/versions');
+                const data = await res.json();
+                if (!data.versions || data.versions.length === 0) {
+                    panel.innerHTML = '<div style="text-align:center;padding:16px;font-size:11px;color:var(--text-secondary);">No versions saved yet.</div>';
+                    return;
+                }
+                const latestVer = data.versions[0].version;
+                panel.innerHTML = data.versions.map(v => `
+                    <div class="version-row">
+                        <div class="version-tag">v${v.version}</div>
+                        <div class="version-meta">
+                            ${v.best_rmse !== null ? 'RMSE ' + v.best_rmse : '—'}<br>
+                            ${v.created_at ? new Date(v.created_at).toLocaleTimeString() : ''}
+                        </div>
+                        <button
+                            class="rollback-btn"
+                            id="rb-${v.version}"
+                            ${v.version === latestVer ? 'disabled title="Current version"' : ''}
+                            onclick="doRollback(${v.version})">
+                            ${v.version === latestVer ? '✓ Current' : '⏪ Restore'}
+                        </button>
+                    </div>
+                `).join('');
+            } catch (e) {
+                panel.innerHTML = `<div style="color:var(--fedora-danger);font-size:11px;padding:12px;">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function doRollback(ver) {
+            const btn = document.getElementById(`rb-${ver}`);
+            if (!btn) return;
+            btn.disabled = true;
+            btn.textContent = 'Rolling...';
+            try {
+                const res = await fetch(`/api/fl/rollback/${ver}`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    btn.textContent = `✓ → v${data.new_version}`;
+                    btn.style.color = 'var(--fedora-cyan)';
+                    btn.style.borderColor = 'var(--fedora-cyan)';
+                    setTimeout(loadVersions, 1200);
+                } else {
+                    btn.textContent = 'Failed';
+                    btn.style.color = 'var(--fedora-danger)';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                btn.textContent = 'Error';
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteLatest() {
+            const btn = document.getElementById('btn-delete-latest');
+            const panel = document.getElementById('version-history-panel');
+            // Find current latest version number for the confirm message
+            const firstTag = panel.querySelector('.version-tag');
+            const curVer = firstTag ? firstTag.textContent.trim() : 'latest';
+            if (!confirm(`Delete ${curVer}? This is permanent — the model will revert to the previous version.`)) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Deleting…';
+            try {
+                const res = await fetch('/api/fl/model/latest', { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    btn.textContent = `✓ Reverted to v${data.active_version ?? 'none'}`;
+                    btn.style.color = 'var(--fedora-cyan)';
+                    btn.style.borderColor = 'var(--fedora-cyan)';
+                    setTimeout(() => { btn.textContent = '⌫ Delete Latest'; btn.style.color = ''; btn.style.borderColor = ''; btn.disabled = false; loadVersions(); }, 2000);
+                } else {
+                    btn.textContent = data.detail || 'Failed';
+                    btn.style.color = 'var(--fedora-danger)';
+                    setTimeout(() => { btn.textContent = '⌫ Delete Latest'; btn.style.color = ''; btn.disabled = false; }, 2500);
+                }
+            } catch (e) {
+                btn.textContent = 'Error';
+                setTimeout(() => { btn.textContent = '⌫ Delete Latest'; btn.disabled = false; }, 2000);
+            }
+        }
+
+        // Load on page open
+        loadVersions();
     </script>
 </body>
 

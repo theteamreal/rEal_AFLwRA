@@ -4,22 +4,66 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from .models import GlobalModel, Client, ModelUpdateLog
 import random
+import socket
+
+def is_host_request(request):
+    """
+    Checks if the request is originating from the host machine.
+    """
+    remote_addr = request.META.get('REMOTE_ADDR')
+    # Standard local addresses
+    if remote_addr in ['127.0.0.1', '::1', 'localhost']:
+        return True
+    
+    # Check if remote matches any of our local IPs (handles LAN access from host)
+    try:
+        host_ips = [info[4][0] for info in socket.getaddrinfo(socket.gethostname(), None)]
+        if remote_addr in host_ips:
+            return True
+    except:
+        pass
+        
+    return False
 
 @login_required
 def dashboard_view(request):
-    # Fetch the latest global model version
+    is_host = is_host_request(request)
     latest_model = GlobalModel.objects.first()
-    clients = Client.objects.all().order_by('-trust_score')
-    recent_updates = ModelUpdateLog.objects.all().order_by('-timestamp')[:15]
     
-    context = {
-        'title': 'Fedora Unified Dashboard',
-        'latest_model': latest_model,
-        'clients': clients,
-        'recent_updates': recent_updates,
-        'page': 'dashboard',
-    }
-    return render(request, 'dashboard.html', context)
+    # Get current client profile
+    client, _ = Client.objects.get_or_create(
+        user=request.user, 
+        defaults={'client_id': f"node_{request.user.username}_{random.randint(100, 999)}"}
+    )
+
+    if is_host:
+        clients = Client.objects.all().order_by('-trust_score')
+        recent_updates = ModelUpdateLog.objects.all().order_by('-timestamp')[:15]
+        
+        context = {
+            'title': 'Fedora Hub — Administration',
+            'latest_model': latest_model,
+            'clients': clients,
+            'recent_updates': recent_updates,
+            'page': 'dashboard',
+            'is_host': True,
+            'user': request.user
+        }
+        return render(request, 'dashboard.html', context)
+    else:
+        # Participant View: restricted and separate experience
+        recent_updates = ModelUpdateLog.objects.filter(client=client).order_by('-timestamp')[:10]
+        
+        context = {
+            'title': 'Fedora — Participant Portal',
+            'latest_model': latest_model,
+            'client': client,
+            'recent_updates': recent_updates,
+            'page': 'dashboard',
+            'is_host': False,
+            'user': request.user
+        }
+        return render(request, 'dashboard_client.html', context)
 
 @login_required
 def train_page(request):
@@ -30,9 +74,11 @@ def train_page(request):
     )
     
     context = {
+        'user': request.user,
         'title': 'Fedora Training Notebook',
         'page': 'train',
-        'client_id': client.client_id
+        'client_id': client.client_id,
+        'is_host': is_host_request(request)
     }
     return render(request, 'train.html', context)
 
@@ -42,6 +88,7 @@ def dataset_hub(request):
     context = {
         'title': 'Fedora Registry',
         'page': 'datasets',
+        'is_host': is_host_request(request)
     }
     return render(request, 'datasets.html', context)
 

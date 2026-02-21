@@ -1,40 +1,43 @@
-import torch
 import numpy as np
 
 def calculate_update_norm(update_weights: dict) -> float:
-    """Calculates the L2 norm of the weight update (difference from 0)."""
     total_norm = 0.0
     for val in update_weights.values():
-        arr = np.array(val)
-        total_norm += np.sum(np.square(arr))
+        arr = np.array(val, dtype=np.float32)
+        total_norm += float(np.sum(np.square(arr)))
     return float(np.sqrt(total_norm))
 
 def validate_update(update_weights: dict, threshold: float = 10000.0) -> tuple[bool, str]:
-    """
-    Validates a weight update based on its L2 norm.
-    Rejects updates that exceed the norm threshold (potential malicious/exploding gradients).
-    """
     norm = calculate_update_norm(update_weights)
     if norm > threshold:
         return False, f"L2 norm {norm:.2f} exceeds threshold {threshold}"
-    
-    # Check for NaN/Inf
     for k, v in update_weights.items():
-        if np.any(np.isnan(v)) or np.any(np.isinf(v)):
-            return False, f"Update contains NaN or Inf values in layer {k}"
-            
+        arr = np.array(v, dtype=np.float32)
+        if np.any(np.isnan(arr)) or np.any(np.isinf(arr)):
+            return False, f"NaN/Inf in layer {k}"
     return True, "Valid"
 
+def cosine_similarity_check(delta: dict, reference: dict, threshold: float = 0.0) -> tuple[bool, str]:
+    if not reference:
+        return True, "No reference yet"
+    keys = [k for k in delta if k in reference]
+    if not keys:
+        return True, "No common keys"
+    flat_delta = np.concatenate([np.array(delta[k], dtype=np.float32).ravel() for k in keys])
+    flat_ref = np.concatenate([np.array(reference[k], dtype=np.float32).ravel() for k in keys])
+    norm_d = np.linalg.norm(flat_delta)
+    norm_r = np.linalg.norm(flat_ref)
+    if norm_d < 1e-9 or norm_r < 1e-9:
+        return True, "Zero vector — skip cosine check"
+    sim = float(np.dot(flat_delta, flat_ref) / (norm_d * norm_r))
+    if sim < threshold:
+        return False, f"Cosine similarity {sim:.4f} below threshold {threshold} (stealth poisoning detected)"
+    return True, f"Cosine similarity {sim:.4f} OK"
+
 def update_client_trust(client, accepted: bool):
-    """
-    Updates a client's trust score based on whether their update was accepted.
-    Decreases score on rejection, maintains or slowly rewards on acceptance.
-    """
     if accepted:
-        # Slowly recover trust if it was low
         client.trust_score = min(1.0, client.trust_score + 0.01)
     else:
-        # Sharp penalty for rejection
         client.trust_score = max(0.0, client.trust_score - 0.2)
         client.rejected_count += 1
     client.save()

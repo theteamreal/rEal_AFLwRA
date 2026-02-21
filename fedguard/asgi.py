@@ -22,6 +22,10 @@ django_app = get_asgi_application()
 
 
 async def application(scope, receive, send):
+    if scope['type'] == 'lifespan':
+        # Forward lifespan events to FastAPI so the aggregation worker starts/stops
+        await api_app(scope, receive, send)
+        return
     if scope['type'] == 'http':
         path = scope.get('path', '')
         if path.startswith('/api/'):

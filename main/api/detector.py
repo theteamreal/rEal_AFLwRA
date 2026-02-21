@@ -146,12 +146,20 @@ def aggregate(updates: list[dict], template: dict, algo: str = None) -> dict:
         algo:     Override AGG_ALGO if provided
 
     Returns:
-        New aggregated weights dict.
+        New aggregated weights dict (NaN/Inf sanitized — safe for JSON).
     """
     algo = algo or AGG_ALGO
     if algo == "median":
-        return _coordinate_median(updates, template)
+        result = _coordinate_median(updates, template)
     elif algo == "fedavg":
-        return _fedavg(updates, template)
+        result = _fedavg(updates, template)
     else:  # default: trimmed_mean
-        return _trimmed_mean(updates, template)
+        result = _trimmed_mean(updates, template)
+
+    # Sanitize: replace any NaN / Inf that slipped through numerical ops
+    sanitized = {}
+    for k, v in result.items():
+        arr = np.array(v, dtype=np.float64)
+        arr = np.nan_to_num(arr, nan=0.0, posinf=1e6, neginf=-1e6)
+        sanitized[k] = arr.tolist()
+    return sanitized

@@ -193,3 +193,70 @@ async def metrics():
     except Exception as e:
         logger.error(f"Metrics query failed: {e}")
         return {"rounds": [], "clients": [], "error": str(e)}
+
+
+# ── GET /api/datasets ─────────────────────────────────────────────────────────
+
+@router.get("/datasets")
+async def list_datasets(q: str = "", tag: str = ""):
+    """
+    Returns JSON list of public datasets for live search.
+    Optional query params: q (search name/description/tags), tag (filter by tag).
+    """
+    try:
+        from asgiref.sync import sync_to_async
+
+        @sync_to_async
+        def _query():
+            from main.models import Dataset
+            qs = Dataset.objects.filter(is_public=True)
+            if q:
+                from django.db.models import Q
+                qs = qs.filter(
+                    Q(name__icontains=q) |
+                    Q(description__icontains=q) |
+                    Q(tags__icontains=q)
+                )
+            if tag:
+                qs = qs.filter(tags__icontains=tag)
+            return list(qs.values(
+                'name', 'slug', 'description', 'tags',
+                'created_by', 'created_at', 'row_count',
+                'feature_count', 'num_classes', 'download_count'
+            )[:50])
+
+        datasets = await _query()
+        # Convert datetimes
+        for d in datasets:
+            d['created_at'] = d['created_at'].isoformat() if d['created_at'] else None
+        return JSONResponse(content={"datasets": datasets})
+    except Exception as e:
+        logger.error(f"Dataset list failed: {e}")
+        return JSONResponse(content={"datasets": [], "error": str(e)})
+
+
+# ── GET /api/datasets/{slug}/csv ──────────────────────────────────────────────
+
+@router.get("/datasets/{slug}/csv")
+async def dataset_csv(slug: str):
+    """Returns raw CSV text for a dataset and increments download_count."""
+    try:
+        from asgiref.sync import sync_to_async
+
+        @sync_to_async
+        def _fetch():
+            from main.models import Dataset
+            ds = Dataset.objects.get(slug=slug, is_public=True)
+            Dataset.objects.filter(pk=ds.pk).update(download_count=ds.download_count + 1)
+            return ds.csv_data, ds.name
+
+        csv_text, name = await _fetch()
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse(
+            content=csv_text,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{slug}.csv"'}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+

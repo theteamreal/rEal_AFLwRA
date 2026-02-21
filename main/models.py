@@ -1,11 +1,13 @@
 """
-Django Models — Phase 6
--------------------------
-Two models that record the history of each federated learning round
-and track per-client participation and flagging statistics.
+Django Models
+--------------
+RoundHistory    — one row per completed aggregation round
+ClientRecord    — per-client participation and flagging stats
+Dataset         — shared dataset repository (GitHub-style hub)
 """
 
 from django.db import models
+from django.utils.text import slugify
 
 
 class RoundHistory(models.Model):
@@ -42,7 +44,38 @@ class ClientRecord(models.Model):
 
     @property
     def trust_score(self) -> float:
-        """Simple trust score: fraction of updates that were NOT flagged."""
         if self.total_updates == 0:
             return 1.0
         return max(0.0, 1.0 - self.flagged_count / self.total_updates)
+
+
+class Dataset(models.Model):
+    """A shared CSV dataset in the FedGuard dataset hub."""
+    name = models.CharField(max_length=128, unique=True)
+    slug = models.SlugField(max_length=140, unique=True, blank=True)
+    description = models.TextField(blank=True)
+    tags = models.CharField(max_length=256, blank=True, help_text="Comma-separated tags")
+    created_by = models.CharField(max_length=64, blank=True, help_text="Client ID or username")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    row_count = models.IntegerField(default=0)
+    feature_count = models.IntegerField(default=0)
+    num_classes = models.IntegerField(default=10)
+    csv_data = models.TextField(blank=True, help_text="Raw CSV content (max ~5 MB)")
+    is_public = models.BooleanField(default=True)
+    download_count = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Dataset"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def tag_list(self):
+        return [t.strip() for t in self.tags.split(',') if t.strip()]
+
+    def __str__(self):
+        return self.name

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <meta name="description" content="FedGuard Dataset Hub — browse and share federated learning datasets">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,700;9..144,900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --ink: #0D0F14; --paper: #F5F0E8; --cream: #EDE8DC;
+            --rust: #C84B31; --gold: #C9922A; --teal: #1A7A6E;
+            --mist: #8B9BAA; --rule: #1E2530; --mid: #141820;
+            --mono: 'DM Mono', monospace; --serif: 'Fraunces', serif;
+        }
+        body { background: var(--ink); color: var(--paper); font-family: var(--mono); min-height: 100vh; }
+
+        /* NAV */
+        .topbar { display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--rule); background:#090B0F; }
+        .topbar-brand { font-family:var(--serif); font-size:22px; font-weight:900; letter-spacing:-1px; color:var(--paper); }
+        .topbar-brand span { color:var(--rust); }
+        .topbar-nav { display:flex; gap:8px; }
+        .nav-btn { padding:7px 18px; border:1px solid #2A3240; background:transparent; color:var(--mist); font-family:var(--mono); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; border-radius:2px; text-decoration:none; transition:all 0.15s; }
+        .nav-btn:hover, .nav-btn.active { background:var(--rust); color:white; border-color:var(--rust); }
+
+        /* HERO */
+        .hub-hero { padding:48px 32px 32px; border-bottom:1px solid var(--rule); background: linear-gradient(135deg, #090B0F 0%, #0f1520 100%); }
+        .hub-hero h1 { font-family:var(--serif); font-size:42px; font-weight:900; letter-spacing:-2px; margin-bottom:8px; }
+        .hub-hero h1 span { color:var(--teal); }
+        .hub-hero p { color:var(--mist); font-size:13px; margin-bottom:28px; line-height:1.7; max-width:600px; }
+        .hero-actions { display:flex; gap:12px; flex-wrap:wrap; }
+        .btn { padding:10px 22px; font-family:var(--mono); font-size:12px; letter-spacing:1px; text-transform:uppercase; border:none; cursor:pointer; border-radius:2px; transition:all 0.15s; text-decoration:none; display:inline-block; }
+        .btn-primary { background:var(--teal); color:white; }
+        .btn-primary:hover { background:#145F54; }
+        .btn-secondary { background:transparent; color:var(--paper); border:1px solid var(--rule); }
+        .btn-secondary:hover { border-color:var(--teal); color:var(--teal); }
+
+        /* SEARCH */
+        .search-wrap { padding:24px 32px; border-bottom:1px solid var(--rule); display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+        .search-box { flex:1; min-width:260px; display:flex; align-items:center; gap:10px; background:var(--mid); border:1px solid var(--rule); border-radius:3px; padding:10px 16px; transition:border-color 0.2s; }
+        .search-box:focus-within { border-color:var(--teal); }
+        .search-icon { color:var(--mist); font-size:14px; }
+        .search-input { background:transparent; border:none; outline:none; color:var(--paper); font-family:var(--mono); font-size:13px; flex:1; }
+        .search-input::placeholder { color:var(--mist); }
+        .search-stats { font-size:11px; color:var(--mist); white-space:nowrap; }
+
+        /* GRID */
+        .hub-body { padding:32px; }
+        .sort-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+        .sort-bar-label { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--mist); }
+        .dataset-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:16px; }
+
+        /* CARD */
+        .ds-card { background:var(--mid); border:1px solid var(--rule); border-radius:4px; padding:22px; cursor:pointer; transition:all 0.2s; position:relative; text-decoration:none; display:block; }
+        .ds-card:hover { border-color:var(--teal); transform:translateY(-2px); box-shadow:0 8px 32px rgba(26,122,110,0.12); }
+        .ds-card-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px; gap:8px; }
+        .ds-name { font-size:15px; font-weight:500; color:var(--paper); font-family:var(--serif); line-height:1.3; }
+        .ds-badge { font-size:9px; letter-spacing:1px; text-transform:uppercase; background:rgba(26,122,110,0.15); color:#4ECDC4; border:1px solid rgba(26,122,110,0.3); padding:3px 8px; border-radius:2px; white-space:nowrap; flex-shrink:0; }
+        .ds-desc { font-size:12px; color:var(--mist); line-height:1.7; margin-bottom:14px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .ds-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+        .tag-pill { font-size:10px; padding:3px 10px; border-radius:100px; background:rgba(201,146,42,0.12); color:var(--gold); border:1px solid rgba(201,146,42,0.25); cursor:pointer; transition:all 0.15s; }
+        .tag-pill:hover { background:rgba(201,146,42,0.25); }
+        .ds-meta { display:flex; gap:16px; font-size:10px; color:var(--mist); border-top:1px solid var(--rule); padding-top:12px; margin-top:4px; flex-wrap:wrap; }
+        .ds-meta span { display:flex; align-items:center; gap:4px; }
+        .ds-use-btn { margin-top:14px; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--teal); border:1px solid rgba(26,122,110,0.4); padding:6px 14px; border-radius:2px; display:inline-block; transition:all 0.15s; }
+        .ds-card:hover .ds-use-btn { background:var(--teal); color:white; }
+
+        /* EMPTY STATE */
+        .empty { text-align:center; padding:80px 20px; color:var(--mist); }
+        .empty-icon { font-size:48px; margin-bottom:16px; opacity:0.4; }
+        .empty h2 { font-family:var(--serif); font-size:24px; color:var(--paper); margin-bottom:8px; }
+        .empty p { font-size:12px; line-height:1.8; max-width:360px; margin:0 auto 24px; }
+
+        @media(max-width:700px) { .hub-hero { padding:32px 20px 24px; } .hub-body { padding:20px; } .search-wrap { padding:16px 20px; } }
+    </style>
+</head>
+<body>
+    <nav class="topbar">
+        <div class="topbar-brand">Fed<span>Guard</span></div>
+        <div class="topbar-nav">
+            <a href="/" class="nav-btn">Dashboard</a>
+            <a href="/train/" class="nav-btn">Client Training</a>
+            <a href="/datasets/" class="nav-btn active">Datasets</a>
+        </div>
+    </nav>
+
+    <div class="hub-hero">
+        <h1>Dataset <span>Hub</span></h1>
+        <p>Browse, share, and discover federated learning datasets contributed by the community. Your raw data never leaves your browser — only the dataset schema and samples are shared.</p>
+        <div class="hero-actions">
+            <a href="/datasets/new/" class="btn btn-primary">＋ New Dataset</a>
+            <a href="/train/" class="btn btn-secondary">↗ Start Training</a>
+        </div>
+    </div>
+
+    <div class="search-wrap">
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" id="search-input" type="text" placeholder="Search datasets by name, description, or tag…" value="{{ query }}">
+        </div>
+        <div class="search-stats" id="search-stats">{{ datasets|length }} dataset{{ datasets|length|pluralize }}</div>
+    </div>
+
+    <div class="hub-body">
+        <div class="sort-bar">
+            <span class="sort-bar-label">All Datasets</span>
+        </div>
+
+        <div class="dataset-grid" id="dataset-grid">
+            {% for ds in datasets %}
+            <a class="ds-card" href="/datasets/{{ ds.slug }}/">
+                <div class="ds-card-top">
+                    <div class="ds-name">{{ ds.name }}</div>
+                    <div class="ds-badge">Public</div>
+                </div>
+                <div class="ds-desc">{{ ds.description|default:"No description provided." }}</div>
+                <div class="ds-tags">
+                    {% for tag in ds.tag_list %}
+                    <span class="tag-pill" onclick="event.preventDefault(); filterTag('{{ tag }}')">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                <div class="ds-meta">
+                    <span>📊 {{ ds.row_count }} rows</span>
+                    <span>📐 {{ ds.feature_count }} features</span>
+                    <span>🏷 {{ ds.num_classes }} classes</span>
+                    <span>⬇ {{ ds.download_count }} uses</span>
+                    <span>👤 {{ ds.created_by|default:"anonymous" }}</span>
+                </div>
+                <div class="ds-use-btn">Use for Training →</div>
+            </a>
+            {% empty %}
+            <div class="empty" style="grid-column:1/-1;">
+                <div class="empty-icon">🗄</div>
+                <h2>No datasets yet</h2>
+                <p>Be the first to share a dataset with the community. Upload a CSV and it will appear here for everyone to use.</p>
+                <a href="/datasets/new/" class="btn btn-primary">＋ Create First Dataset</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        let debounceTimer;
+        const grid = document.getElementById('dataset-grid');
+        const stats = document.getElementById('search-stats');
+
+        document.getElementById('search-input').addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => liveSearch(this.value.trim()), 300);
+        });
+
+        function filterTag(tag) {
+            document.getElementById('search-input').value = tag;
+            liveSearch(tag);
+        }
+
+        async function liveSearch(q) {
+            try {
+                const res = await fetch(`/api/datasets?q=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                renderCards(data.datasets || []);
+            } catch(e) { /* silently fail */ }
+        }
+
+        function renderCards(datasets) {
+            stats.textContent = `${datasets.length} dataset${datasets.length !== 1 ? 's' : ''}`;
+            if (!datasets.length) {
+                grid.innerHTML = `<div class="empty" style="grid-column:1/-1;">
+                    <div class="empty-icon">🔍</div>
+                    <h2>No results</h2>
+                    <p>Try different keywords or <a href="/datasets/new/" style="color:var(--teal);">create a new dataset</a>.</p>
+                </div>`;
+                return;
+            }
+            grid.innerHTML = datasets.map(ds => {
+                const tags = ds.tags ? ds.tags.split(',').filter(t => t.trim()).map(t =>
+                    `<span class="tag-pill" onclick="filterTag('${t.trim()}')">${t.trim()}</span>`).join('') : '';
+                const desc = ds.description || 'No description provided.';
+                const shortDesc = desc.length > 100 ? desc.slice(0, 97) + '…' : desc;
+                return `<a class="ds-card" href="/datasets/${ds.slug}/">
+                    <div class="ds-card-top">
+                        <div class="ds-name">${ds.name}</div>
+                        <div class="ds-badge">Public</div>
+                    </div>
+                    <div class="ds-desc">${shortDesc}</div>
+                    <div class="ds-tags">${tags}</div>
+                    <div class="ds-meta">
+                        <span>📊 ${ds.row_count} rows</span>
+                        <span>📐 ${ds.feature_count} features</span>
+                        <span>🏷 ${ds.num_classes} classes</span>
+                        <span>⬇ ${ds.download_count} uses</span>
+                        <span>👤 ${ds.created_by || 'anonymous'}</span>
+                    </div>
+                    <div class="ds-use-btn">Use for Training →</div>
+                </a>`;
+            }).join('');
+        }
+    </script>
+</body>
+</html>

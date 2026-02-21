@@ -6,7 +6,7 @@ Edit these values to change system behaviour without touching logic code.
 """
 
 # ── Aggregation Trigger ──────────────────────────────────────────────────────
-N_MIN_UPDATES = 3        # Minimum updates received before aggregation fires
+N_MIN_UPDATES = 1        # Minimum updates received before aggregation fires
 MAX_WAIT_SECONDS = 30    # Max seconds to wait before aggregating with whatever is available
 
 # ── Staleness Control ────────────────────────────────────────────────────────

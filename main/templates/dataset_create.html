@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,700;9..144,900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --ink: #0D0F14;
+            --paper: #F5F0E8;
+            --cream: #EDE8DC;
+            --rust: #C84B31;
+            --gold: #C9922A;
+            --teal: #1A7A6E;
+            --mist: #8B9BAA;
+            --rule: #1E2530;
+            --mid: #141820;
+            --mono: 'DM Mono', monospace;
+            --serif: 'Fraunces', serif;
+        }
+
+        body {
+            background: var(--ink);
+            color: var(--paper);
+            font-family: var(--mono);
+            min-height: 100vh;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--rule);
+            background: #090B0F;
+        }
+
+        .topbar-brand {
+            font-family: var(--serif);
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+
+        .topbar-brand span {
+            color: var(--rust);
+        }
+
+        .topbar-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            padding: 7px 18px;
+            border: 1px solid #2A3240;
+            background: transparent;
+            color: var(--mist);
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 2px;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .nav-btn:hover,
+        .nav-btn.active {
+            background: var(--rust);
+            color: white;
+            border-color: var(--rust);
+        }
+
+        .page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .breadcrumb {
+            font-size: 11px;
+            color: var(--mist);
+            margin-bottom: 12px;
+        }
+
+        .breadcrumb a {
+            color: var(--teal);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            font-family: var(--serif);
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            margin-bottom: 6px;
+        }
+
+        h1 span {
+            color: var(--teal);
+        }
+
+        .subtitle {
+            color: var(--mist);
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full {
+            grid-column: 1/-1;
+        }
+
+        label {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--mist);
+        }
+
+        input[type=text],
+        textarea {
+            background: var(--mid);
+            border: 1px solid var(--rule);
+            border-radius: 2px;
+            padding: 10px 14px;
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--paper);
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        input[type=text]:focus,
+        textarea:focus {
+            border-color: var(--teal);
+        }
+
+        input[type=text]::placeholder,
+        textarea::placeholder {
+            color: #3a4a5a;
+        }
+
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .tag-input-wrap {
+            background: var(--mid);
+            border: 1px solid var(--rule);
+            border-radius: 2px;
+            padding: 8px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            min-height: 42px;
+            cursor: text;
+        }
+
+        .tag-input-wrap:focus-within {
+            border-color: var(--teal);
+        }
+
+        .tag-pill {
+            font-size: 10px;
+            padding: 3px 8px 3px 10px;
+            border-radius: 100px;
+            background: rgba(201, 146, 42, 0.15);
+            color: var(--gold);
+            border: 1px solid rgba(201, 146, 42, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tag-pill button {
+            background: none;
+            border: none;
+            color: var(--gold);
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0;
+            opacity: 0.7;
+        }
+
+        .tag-pill button:hover {
+            opacity: 1;
+        }
+
+        #tag-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--paper);
+            font-family: var(--mono);
+            font-size: 12px;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        /* DROPZONE */
+        .dropzone {
+            border: 2px dashed var(--rule);
+            border-radius: 4px;
+            padding: 40px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0;
+        }
+
+        .dropzone:hover,
+        .dropzone.dragging {
+            border-color: var(--teal);
+            background: rgba(26, 122, 110, 0.05);
+        }
+
+        .dropzone-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .dropzone-text {
+            font-size: 12px;
+            color: var(--mist);
+            line-height: 1.8;
+        }
+
+        .dropzone-text strong {
+            color: var(--paper);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        input[type=file] {
+            display: none;
+        }
+
+        /* PREVIEW */
+        .preview-section {
+            margin-top: 16px;
+            display: none;
+        }
+
+        .preview-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .stat-box {
+            background: var(--mid);
+            border: 1px solid var(--rule);
+            padding: 12px;
+            border-radius: 2px;
+            text-align: center;
+        }
+
+        .stat-box-label {
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--mist);
+            margin-bottom: 4px;
+        }
+
+        .stat-box-value {
+            font-family: var(--serif);
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--teal);
+        }
+
+        .preview-table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--rule);
+            border-radius: 2px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        th {
+            background: var(--mid);
+            padding: 8px 12px;
+            text-align: left;
+            color: var(--mist);
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--rule);
+        }
+
+        td {
+            padding: 7px 12px;
+            border-bottom: 1px solid #0d1018;
+            color: #C8D0D8;
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* SUBMIT */
+        .form-footer {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 28px;
+        }
+
+        .btn-submit {
+            background: var(--teal);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background: #145F54;
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-cancel {
+            color: var(--mist);
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .btn-cancel:hover {
+            color: var(--paper);
+        }
+
+        /* ERROR / SUCCESS */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 2px;
+            font-size: 12px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .alert-error {
+            background: rgba(200, 75, 49, 0.1);
+            border-left: 3px solid var(--rust);
+            color: var(--rust);
+        }
+
+        .alert-success {
+            background: rgba(26, 122, 110, 0.1);
+            border-left: 3px solid var(--teal);
+            color: #4ECDC4;
+        }
+
+        .section-title {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--mist);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--rule);
+        }
+
+        section {
+            margin-bottom: 28px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="topbar">
+        <div class="topbar-brand">Fed<span>Guard</span></div>
+        <div class="topbar-nav">
+            <a href="/" class="nav-btn">Dashboard</a>
+            <a href="/train/" class="nav-btn">Client Training</a>
+            <a href="/datasets/" class="nav-btn active">Datasets</a>
+        </div>
+    </nav>
+
+    <div class="page">
+        <div class="page-header">
+            <div class="breadcrumb"><a href="/datasets/">Datasets</a> / New</div>
+            <h1>Share a <span>Dataset</span></h1>
+            <p class="subtitle">Upload a CSV to the community hub. Your data is parsed in the browser — only the content
+                you choose to share is stored on the server.</p>
+        </div>
+
+        <!-- METADATA -->
+        <section>
+            <div class="section-title">Dataset Info</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="ds-name">Name *</label>
+                    <input type="text" id="ds-name" placeholder="e.g. Medical Vitals Tabular">
+                </div>
+                <div class="form-group">
+                    <label for="ds-author">Created By</label>
+                    <input type="text" id="ds-author" placeholder="Your name or client ID">
+                </div>
+                <div class="form-group full">
+                    <label for="ds-desc">Description</label>
+                    <textarea id="ds-desc" placeholder="What is this dataset about? What's it useful for?"></textarea>
+                </div>
+                <div class="form-group full">
+                    <label>Tags <span style="color:var(--mist);letter-spacing:0;text-transform:none;">(press Enter or
+                            comma to add)</span></label>
+                    <div class="tag-input-wrap" id="tag-wrap" onclick="document.getElementById('tag-input').focus()">
+                        <input type="text" id="tag-input" placeholder="e.g. medical, tabular, classification">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CSV UPLOAD -->
+        <section>
+            <div class="section-title">Upload CSV</div>
+            <div class="dropzone" id="dropzone" onclick="document.getElementById('csv-file').click()">
+                <div class="dropzone-icon">📂</div>
+                <div class="dropzone-text">
+                    <strong>Click or drag-drop a CSV file</strong>
+                    Last column = label (integer class). Other columns = features (up to 20 used).
+                </div>
+            </div>
+            <input type="file" id="csv-file" accept=".csv">
+
+            <div class="preview-section" id="preview-section">
+                <div class="preview-stats">
+                    <div class="stat-box">
+                        <div class="stat-box-label">Rows</div>
+                        <div class="stat-box-value" id="stat-rows">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-label">Features</div>
+                        <div class="stat-box-value" id="stat-feats">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-label">Classes</div>
+                        <div class="stat-box-value" id="stat-cls">0</div>
+                    </div>
+                </div>
+                <div class="preview-table-wrap">
+                    <table>
+                        <thead id="preview-thead"></thead>
+                        <tbody id="preview-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <div class="alert alert-error" id="alert-error"></div>
+        <div class="alert alert-success" id="alert-success"></div>
+
+        <div class="form-footer">
+            <button class="btn-submit" id="btn-submit" disabled onclick="submitDataset()">＋ Publish Dataset</button>
+            <a href="/datasets/" class="btn-cancel">Cancel</a>
+        </div>
+    </div>
+
+    <script>
+        // ── Tags ─────────────────────────────────────────────────────────────────────
+        const tagSet = new Set();
+        const tagInput = document.getElementById('tag-input');
+        const tagWrap = document.getElementById('tag-wrap');
+
+        function addTag(value) {
+            const t = value.trim().replace(/,$/, '').toLowerCase();
+            if (!t || tagSet.has(t)) return;
+            tagSet.add(t);
+            const pill = document.createElement('span');
+            pill.className = 'tag-pill';
+            pill.innerHTML = `${t}<button onclick="removeTag('${t}', this.parentElement)">×</button>`;
+            tagWrap.insertBefore(pill, tagInput);
+            tagInput.value = '';
+        }
+
+        function removeTag(tag, el) {
+            tagSet.delete(tag);
+            el.remove();
+        }
+
+        tagInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagInput.value); }
+            if (e.key === 'Backspace' && !tagInput.value) {
+                const last = tagWrap.querySelector('.tag-pill:last-of-type');
+                if (last) { const t = last.textContent.slice(0, -1).trim(); tagSet.delete(t); last.remove(); }
+            }
+        });
+        tagInput.addEventListener('blur', () => { if (tagInput.value) addTag(tagInput.value); });
+
+        // ── CSV Parsing ────────────────────────────────────────────────────────────
+        let csvRaw = '';
+        let parsedStats = { rows: 0, features: 0, classes: 0 };
+
+        const dropzone = document.getElementById('dropzone');
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragging'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragging'));
+        dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('dragging'); const f = e.dataTransfer.files[0]; if (f) parseCSV(f); });
+        document.getElementById('csv-file').addEventListener('change', e => { if (e.target.files[0]) parseCSV(e.target.files[0]); });
+
+        function parseCSV(file) {
+            Papa.parse(file, {
+                header: false,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: (res) => {
+                    const rows = res.data;
+                    if (rows.length < 2) { showError('CSV must have at least 2 rows.'); return; }
+                    const nFeatures = rows[0].length - 1;
+                    const labels = [...new Set(rows.map(r => parseInt(r[r.length - 1])).filter(v => !isNaN(v)))];
+                    parsedStats = { rows: rows.length, features: Math.min(nFeatures, 20), classes: labels.length };
+
+                    // Store raw CSV
+                    Papa.unparse && (csvRaw = Papa.unparse(rows));
+
+                    document.getElementById('stat-rows').textContent = rows.length;
+                    document.getElementById('stat-feats').textContent = parsedStats.features;
+                    document.getElementById('stat-cls').textContent = labels.length;
+
+                    // Preview table
+                    const cols = rows[0].length;
+                    const headers = [...Array(cols - 1)].map((_, i) => `feat_${i}`).concat(['label']);
+                    document.getElementById('preview-thead').innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+                    document.getElementById('preview-tbody').innerHTML = rows.slice(0, 6).map(r =>
+                        `<tr>${r.map(v => `<td>${typeof v === 'number' ? v.toFixed ? v.toFixed(3) : v : v}</td>`).join('')}</tr>`
+                    ).join('');
+
+                    document.getElementById('preview-section').style.display = 'block';
+                    dropzone.querySelector('.dropzone-text strong').textContent = `✓ ${file.name} loaded`;
+                    document.getElementById('btn-submit').disabled = false;
+                    hideAlert();
+
+                    // Try to store full CSV text
+                    const reader = new FileReader();
+                    reader.onload = e => { csvRaw = e.target.result; };
+                    reader.readAsText(file);
+                },
+                error: e => showError(`Parse error: ${e.message}`)
+            });
+        }
+
+        // ── Submit ────────────────────────────────────────────────────────────────
+        async function submitDataset() {
+            const name = document.getElementById('ds-name').value.trim();
+            if (!name) { showError('Dataset name is required.'); return; }
+            if (!csvRaw) { showError('Please upload a CSV file.'); return; }
+
+            document.getElementById('btn-submit').disabled = true;
+            document.getElementById('btn-submit').textContent = 'Publishing…';
+
+            const payload = {
+                name,
+                description: document.getElementById('ds-desc').value.trim(),
+                tags: [...tagSet].join(', '),
+                created_by: document.getElementById('ds-author').value.trim() || localStorage.getItem('fedguard_client_id') || 'anonymous',
+                row_count: parsedStats.rows,
+                feature_count: parsedStats.features,
+                num_classes: parsedStats.classes,
+                csv_data: csvRaw,
+            };
+
+            try {
+                const res = await fetch('/datasets/new/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (!res.ok) { showError(data.error || 'Failed to publish.'); document.getElementById('btn-submit').disabled = false; document.getElementById('btn-submit').textContent = '＋ Publish Dataset'; return; }
+                showSuccess('Dataset published! Redirecting…');
+                setTimeout(() => window.location.href = `/datasets/${data.slug}/`, 800);
+            } catch (e) {
+                showError(e.message);
+                document.getElementById('btn-submit').disabled = false;
+                document.getElementById('btn-submit').textContent = '＋ Publish Dataset';
+            }
+        }
+
+        function showError(msg) { const el = document.getElementById('alert-error'); el.textContent = msg; el.style.display = 'block'; document.getElementById('alert-success').style.display = 'none'; }
+        function showSuccess(msg) { const el = document.getElementById('alert-success'); el.textContent = msg; el.style.display = 'block'; document.getElementById('alert-error').style.display = 'none'; }
+        function hideAlert() { document.getElementById('alert-error').style.display = 'none'; document.getElementById('alert-success').style.display = 'none'; }
+    </script>
+</body>
+
+</html>

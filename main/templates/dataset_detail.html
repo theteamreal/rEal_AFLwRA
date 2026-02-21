@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,700;9..144,900&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --ink: #0D0F14;
+            --paper: #F5F0E8;
+            --rust: #C84B31;
+            --gold: #C9922A;
+            --teal: #1A7A6E;
+            --mist: #8B9BAA;
+            --rule: #1E2530;
+            --mid: #141820;
+            --mono: 'DM Mono', monospace;
+            --serif: 'Fraunces', serif;
+        }
+
+        body {
+            background: var(--ink);
+            color: var(--paper);
+            font-family: var(--mono);
+            min-height: 100vh;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--rule);
+            background: #090B0F;
+        }
+
+        .topbar-brand {
+            font-family: var(--serif);
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+
+        .topbar-brand span {
+            color: var(--rust);
+        }
+
+        .topbar-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            padding: 7px 18px;
+            border: 1px solid #2A3240;
+            background: transparent;
+            color: var(--mist);
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 2px;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .nav-btn:hover,
+        .nav-btn.active {
+            background: var(--rust);
+            color: white;
+            border-color: var(--rust);
+        }
+
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        .breadcrumb {
+            font-size: 11px;
+            color: var(--mist);
+            margin-bottom: 16px;
+        }
+
+        .breadcrumb a {
+            color: var(--teal);
+            text-decoration: none;
+        }
+
+        h1 {
+            font-family: var(--serif);
+            font-size: 36px;
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            margin-bottom: 4px;
+        }
+
+        h1 span {
+            color: var(--teal);
+        }
+
+        .subtitle {
+            color: var(--mist);
+            font-size: 12px;
+            margin-bottom: 32px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .meta-box {
+            background: var(--mid);
+            border: 1px solid var(--rule);
+            padding: 16px;
+            border-radius: 3px;
+        }
+
+        .meta-label {
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--mist);
+            margin-bottom: 6px;
+        }
+
+        .meta-value {
+            font-family: var(--serif);
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--teal);
+        }
+
+        .badge-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .tag-pill {
+            font-size: 10px;
+            padding: 4px 12px;
+            border-radius: 100px;
+            background: rgba(201, 146, 42, 0.12);
+            color: var(--gold);
+            border: 1px solid rgba(201, 146, 42, 0.3);
+        }
+
+        .section {
+            margin-bottom: 28px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--mist);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--rule);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .desc-text {
+            font-size: 13px;
+            color: #C8D0D8;
+            line-height: 1.8;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.15s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-teal {
+            background: var(--teal);
+            color: white;
+        }
+
+        .btn-teal:hover {
+            background: #145F54;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--paper);
+            border: 1px solid var(--rule);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--teal);
+            color: var(--teal);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+        }
+
+        .preview-table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--rule);
+            border-radius: 3px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        th {
+            background: var(--mid);
+            padding: 8px 14px;
+            text-align: left;
+            color: var(--mist);
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--rule);
+        }
+
+        td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #0d1018;
+            color: #C8D0D8;
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 32px;
+            color: var(--mist);
+            font-size: 12px;
+        }
+
+        .info-row {
+            display: flex;
+            gap: 24px;
+            font-size: 11px;
+            color: var(--mist);
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+
+        .info-row span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            background: var(--teal);
+            color: white;
+            font-size: 12px;
+            border-radius: 3px;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        #toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="topbar">
+        <div class="topbar-brand">Fed<span>Guard</span></div>
+        <div class="topbar-nav">
+            <a href="/" class="nav-btn">Dashboard</a>
+            <a href="/train/" class="nav-btn">Client Training</a>
+            <a href="/datasets/" class="nav-btn active">Datasets</a>
+        </div>
+    </nav>
+
+    <div class="page">
+        <div class="breadcrumb"><a href="/datasets/">Datasets</a> / {{ dataset.name }}</div>
+        <h1>{{ dataset.name }}</h1>
+        <p class="subtitle">By {{ dataset.created_by|default:"anonymous" }} · {{ dataset.created_at|date:"M j, Y" }}</p>
+
+        <div class="meta-grid">
+            <div class="meta-box">
+                <div class="meta-label">Rows</div>
+                <div class="meta-value">{{ dataset.row_count }}</div>
+            </div>
+            <div class="meta-box">
+                <div class="meta-label">Features</div>
+                <div class="meta-value">{{ dataset.feature_count }}</div>
+            </div>
+            <div class="meta-box">
+                <div class="meta-label">Classes</div>
+                <div class="meta-value">{{ dataset.num_classes }}</div>
+            </div>
+            <div class="meta-box">
+                <div class="meta-label">Downloads</div>
+                <div class="meta-value">{{ dataset.download_count }}</div>
+            </div>
+        </div>
+
+        {% if dataset.tag_list %}
+        <div class="badge-row">
+            {% for tag in dataset.tag_list %}
+            <a href="/datasets/?tag={{ tag }}" class="tag-pill">{{ tag }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="btn-row">
+            <button class="btn btn-teal" onclick="useForTraining()">▶ Use for Training</button>
+            <a href="/datasets/{{ dataset.slug }}/download/" class="btn btn-outline">⬇ Download CSV</a>
+            <a href="/datasets/" class="btn btn-outline">← Back to Hub</a>
+        </div>
+
+        {% if dataset.description %}
+        <div class="section">
+            <div class="section-title">About</div>
+            <div class="desc-text">{{ dataset.description }}</div>
+        </div>
+        {% endif %}
+
+        <div class="section">
+            <div class="section-title">
+                Data Preview
+                <span style="font-size:10px;color:var(--mist);">first 5 rows</span>
+            </div>
+            {% if dataset.csv_data %}
+            <div class="preview-table-wrap" id="preview-table">
+                <div class="no-data">Loading preview…</div>
+            </div>
+            {% else %}
+            <div class="no-data">No CSV data available for preview.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="toast">✓ Dataset loaded into training page!</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script>
+        const CSV_RAW = {{ dataset.csv_data|default: "''" | safe | json_script: "csv-raw" }};
+
+        // Render preview table from CSV
+        const csvText = document.getElementById('csv-raw').textContent.replace(/^"|"$/g, '').replace(/\\n/g, '\n').replace(/\\"/g, '"');
+        if (csvText.trim()) {
+            const result = Papa.parse(csvText, { header: false, dynamicTyping: true, skipEmptyLines: true });
+            const rows = result.data.slice(0, 5);
+            const cols = result.data[0] ? result.data[0].length : 0;
+            if (rows.length) {
+                const headers = [...Array(cols - 1)].map((_, i) => `feat_${i}`).concat(['label']);
+                document.getElementById('preview-table').innerHTML = `<table>
+                    <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                    <tbody>${rows.map(r => `<tr>${r.map(v => `<td>${typeof v === 'number' && v.toFixed ? v.toFixed(3) : v}</td>`).join('')}</tr>`).join('')}</tbody>
+                </table>`;
+            }
+        }
+
+        function useForTraining() {
+            // Store slug in sessionStorage so train.html can pick it up
+            sessionStorage.setItem('fedguard_load_dataset', '{{ dataset.slug }}');
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => { window.location.href = '/train/'; }, 800);
+        }
+    </script>
+</body>
+
+</html>

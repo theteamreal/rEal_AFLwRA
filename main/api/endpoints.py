@@ -12,7 +12,7 @@ class UpdateSubmission(BaseModel):
 
 @router.get("/health")
 async def health_check():
-    return {"status": "ok", "platform": "Antigravity", "mode": "Unified"}
+    return {"status": "ok", "platform": "Fedora", "mode": "Unified"}
 
 @router.get("/model")
 async def fetch_model():

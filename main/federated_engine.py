@@ -47,12 +47,11 @@ async def get_latest_model():
 async def process_update(client_id: str, client_weights: dict):
     """
     Unified asynchronous pipeline for processing incoming weights.
-    1. Validate client
-    2. Check norm (Anti-Adversarial)
-    3. Aggregate (Weighted Blend)
-    4. Save version
     """
-    client, _ = await sync_to_async(Client.objects.get_or_create)(client_id=client_id)
+    try:
+        client = await sync_to_async(Client.objects.get)(client_id=client_id)
+    except Client.DoesNotExist:
+        return {"status": "rejected", "reason": "Unauthorized Node: Please sign in to Fedora Hub."}
     
     # Validation (Malicious Mitigation)
     is_valid, reason = validate_update(client_weights)
@@ -112,5 +111,5 @@ async def process_update(client_id: str, client_weights: dict):
     )
     await sync_to_async(update_client_trust)(client, accepted=True)
     
-    print(f"[Engine] Global model incremented to v{new_version}")
+    print(f"[Engine] Fedora model incremented to v{new_version}")
     return {"status": "accepted", "new_version": new_version}

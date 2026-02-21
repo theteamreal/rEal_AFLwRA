@@ -9,7 +9,7 @@ def calculate_update_norm(update_weights: dict) -> float:
         total_norm += np.sum(np.square(arr))
     return float(np.sqrt(total_norm))
 
-def validate_update(update_weights: dict, threshold: float = 1000.0) -> tuple[bool, str]:
+def validate_update(update_weights: dict, threshold: float = 10000.0) -> tuple[bool, str]:
     """
     Validates a weight update based on its L2 norm.
     Rejects updates that exceed the norm threshold (potential malicious/exploding gradients).

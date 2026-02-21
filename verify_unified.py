@@ -1,5 +1,10 @@
 import requests
 import json
+"""
+Fedora v2.2 Architecture Verification
+-------------------------------------
+End-to-end verification of the unified model environment and authentication logic.
+"""
 
 BASE_URL = "http://localhost:8000/api"
 

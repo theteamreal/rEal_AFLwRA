@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class GlobalModel(models.Model):
     """
@@ -13,17 +14,18 @@ class GlobalModel(models.Model):
         ordering = ['-version']
 
     def __str__(self):
-        return f"Antigravity Global v{self.version}"
+        return f"Fedora Global v{self.version}"
 
 class Client(models.Model):
     """Tracks unique clients and their trust scores."""
-    client_id = models.CharField(max_length=128, unique=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="fedora_client")
+    client_id = models.CharField(max_length=64, unique=True)
     trust_score = models.FloatField(default=1.0)
     rejected_count = models.IntegerField(default=0)
     last_update = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.client_id} (Score: {self.trust_score:.2f})"
+        return f"{self.user.username} ({self.client_id}) (Score: {self.trust_score:.2f})"
 
 class ModelUpdateLog(models.Model):
     """History of every submission in the interactive pool."""

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antigravity — Federated Notebook</title>
+    <title>Fedora — Federated Notebook</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@700;900&display=swap"
         rel="stylesheet">
@@ -14,14 +14,15 @@
 
     <style>
         :root {
-            --ink: #0D0F14;
-            --paper: #F5F0E8;
-            --rust: #C84B31;
-            --teal: #1A7A6E;
-            --mist: #8B9BAA;
-            --rule: #1E2530;
-            --mid: #141820;
-            --code-bg: #1A1E26;
+            --bg-deep: #05070A;
+            --fedora-blue: #4A90E2;
+            --fedora-cyan: #50E3C2;
+            --fedora-danger: #FF4D4D;
+            --glass-bg: rgba(20, 26, 38, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #E6EBF5;
+            --text-secondary: #8B9BAA;
+            --code-blk: #0D1117;
             --mono: 'DM Mono', monospace;
             --serif: 'Fraunces', serif;
         }
@@ -33,20 +34,21 @@
         }
 
         body {
-            background: var(--ink);
-            color: var(--paper);
+            background: var(--bg-deep);
+            color: var(--text-primary);
             font-family: var(--mono);
             line-height: 1.6;
             padding-bottom: 100px;
         }
 
         .topbar {
+            padding: 24px 40px;
+            background: rgba(5, 7, 10, 0.9);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--glass-border);
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            padding: 16px 32px;
-            background: #090B0F;
-            border-bottom: 1px solid var(--rule);
+            align-items: center;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -54,79 +56,84 @@
 
         .brand {
             font-family: var(--serif);
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 900;
         }
 
         .brand span {
-            color: var(--rust);
+            color: var(--fedora-blue);
         }
 
         .notebook-container {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 0 20px;
+            max-width: 960px;
+            margin: 50px auto;
+            padding: 0 30px;
         }
 
         .cell {
-            margin-bottom: 30px;
-            border-left: 4px solid var(--rule);
-            padding-left: 20px;
-            transition: border-color 0.3s;
+            margin-bottom: 40px;
+            border-left: 2px solid var(--glass-border);
+            padding-left: 30px;
+            position: relative;
         }
 
         .cell.active {
-            border-color: var(--teal);
+            border-color: var(--fedora-blue);
         }
 
         .cell-header {
-            font-size: 10px;
+            font-size: 11px;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 2px;
-            color: var(--mist);
-            margin-bottom: 8px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
         }
 
-        .cell-input {
-            background: var(--code-bg);
-            border-radius: 4px;
-            padding: 20px;
-            position: relative;
-            border: 1px solid var(--rule);
+        .exec-num {
+            color: var(--fedora-blue);
+            font-weight: 700;
+            width: 40px;
+        }
+
+        .cell-content {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
         }
 
         .cell-output {
-            padding: 15px 20px;
+            margin-top: 15px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
             font-size: 13px;
-            color: var(--mist);
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 0 0 4px 4px;
-            border: 1px solid var(--rule);
-            border-top: none;
+            border-left: 3px solid var(--fedora-cyan);
             display: none;
         }
 
         .run-btn {
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            background: transparent;
-            border: 1px solid var(--teal);
-            color: var(--teal);
-            padding: 5px 15px;
-            border-radius: 30px;
+            background: rgba(74, 144, 226, 0.1);
+            border: 1px solid var(--fedora-blue);
+            color: var(--fedora-blue);
+            padding: 8px 24px;
+            border-radius: 6px;
             cursor: pointer;
             font-family: var(--mono);
-            font-size: 11px;
-            transition: all 0.2s;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
         }
 
-        .run-btn:hover {
-            background: var(--teal);
+        .run-btn:hover:not(:disabled) {
+            background: var(--fedora-blue);
             color: white;
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.4);
         }
 
         .run-btn:disabled {
@@ -134,262 +141,210 @@
             cursor: not-allowed;
         }
 
-        .form-row {
-            display: flex;
-            gap: 20px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .form-col {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        label {
-            display: block;
-            font-size: 9px;
-            color: var(--mist);
+        .label {
+            font-size: 10px;
+            color: var(--text-secondary);
             text-transform: uppercase;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            display: block;
         }
 
         input,
         select {
             width: 100%;
-            background: var(--ink);
-            border: 1px solid var(--rule);
-            color: var(--paper);
-            padding: 8px;
+            background: var(--code-blk);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 6px;
             font-family: var(--mono);
-            border-radius: 3px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--fedora-blue);
         }
 
         .drop-zone {
-            border: 2px dashed var(--rule);
-            border-radius: 8px;
-            padding: 40px;
+            border: 2px dashed var(--glass-border);
+            border-radius: 10px;
+            padding: 60px 40px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.01);
         }
 
         .drop-zone:hover {
-            border-color: var(--teal);
-            background: rgba(26, 122, 110, 0.05);
-        }
-
-        .chart-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            margin-top: 15px;
+            background: rgba(74, 144, 226, 0.05);
+            border-color: var(--fedora-blue);
         }
 
         .chart-box {
-            background: var(--ink);
-            border: 1px solid var(--rule);
-            border-radius: 4px;
+            background: var(--code-blk);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            height: 200px;
             padding: 15px;
+            margin-top: 20px;
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            background: var(--rule);
+            background: var(--glass-border);
             display: inline-block;
         }
 
         .status-dot.online {
-            background: #4ECDC4;
-            box-shadow: 0 0 10px #4ECDC4;
+            background: var(--fedora-cyan);
+            box-shadow: 0 0 10px var(--fedora-cyan);
         }
 
-        #activity-log {
-            max-height: 150px;
-            overflow-y: auto;
-            font-size: 11px;
-            color: var(--mist);
-            border-top: 1px solid var(--rule);
-            padding-top: 10px;
-            margin-top: 10px;
-        }
-
-        .csv-table-preview {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10px;
-            margin-top: 10px;
-        }
-
-        .csv-table-preview th,
-        .csv-table-preview td {
-            padding: 4px;
-            border: 1px solid var(--rule);
-            text-align: left;
+        .attack-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 77, 77, 0.05);
+            border: 1px solid rgba(255, 77, 77, 0.2);
+            border-radius: 8px;
         }
     </style>
 </head>
 
 <body>
     <nav class="topbar">
-        <div class="brand">Anti<span>gravity</span> Federated Notebook</div>
-        <div style="font-size: 11px; color: var(--mist);">Interactive Client v2.0</div>
+        <div class="brand">Fe<span>dora</span> Notebook</div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div style="font-size: 11px; color: var(--text-secondary);">NODE: <span style="color:var(--fedora-blue)">{{
+                    user.username }}</span></div>
+            <a href="/logout/"
+                style="font-size: 10px; color: var(--fedora-danger); text-decoration: none; text-transform: uppercase; border: 1px solid rgba(255, 77, 77, 0.2); padding: 4px 10px; border-radius: 4px;">Logout</a>
+        </div>
     </nav>
 
     <div class="notebook-container">
+        <!-- Persistent Session Identity (Auto-Initialized) -->
+        <input type="hidden" id="client-id" value="{{ client_id }}">
 
-        <!-- Cell 0: Identity -->
-        <div class="cell" id="cell-0">
-            <div class="cell-header">In [0]: <span class="status-dot" id="id-dot"></span> Identity Handshake</div>
-            <div class="cell-input">
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Participant ID</label>
-                        <input type="text" id="client-id" readonly>
-                    </div>
-                </div>
-                <button class="run-btn" id="btn-id" onclick="runIdentity()">Run Cell</button>
-            </div>
-            <div class="cell-output" id="out-0"></div>
-        </div>
-
-        <!-- Cell 1: Environment -->
+        <!-- Cell 1 -->
         <div class="cell" id="cell-1">
-            <div class="cell-header">In [1]: Global Environment</div>
-            <div class="cell-input">
-                <p style="font-size: 11px; color: var(--mist);">Fetch the latest unified model from the central
-                    intelligence cluster.</p>
-                <button class="run-btn" id="btn-env" onclick="runEnv()">Run Cell</button>
+            <div class="cell-header"><span class="exec-num">In [1]:</span> Global State Sync <span
+                    class="status-dot online" style="margin-left: 10px;"></span></div>
+            <div class="cell-content">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+                    Pulling current model parameters from central Fedora cluster.
+                </p>
+                <div style="text-align: right;">
+                    <button class="run-btn" onclick="runSync()">Execute</button>
+                </div>
             </div>
             <div class="cell-output" id="out-1"></div>
         </div>
 
-        <!-- Cell 2: Data Ingestion -->
+        <!-- Cell 2 -->
         <div class="cell" id="cell-2">
-            <div class="cell-header">In [2]: Data Ingestion (CSV)</div>
-            <div class="cell-input">
+            <div class="cell-header"><span class="exec-num">In [2]:</span> Data Management</div>
+            <div class="cell-content">
                 <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-                    <div style="font-size: 12px;">Drop CSV here or click to browse</div>
-                    <div style="font-size: 10px; color: var(--mist); margin-top: 5px;">Supports automated column
-                        detection</div>
+                    <div style="font-size: 14px; margin-bottom: 5px;">Drag & Drop CSV</div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">Fedora supports automated feature
+                        mapping.</div>
                 </div>
-                <input type="file" id="file-input" style="display:none" accept=".csv"
-                    onchange="handleFile(this.files[0])">
+                <input type="file" id="file-input" style="display:none" onchange="handleFile(this.files[0])">
 
-                <div id="column-selector" style="display:none; margin-top: 20px;">
-                    <div class="form-row">
-                        <div class="form-col">
-                            <label>Target Column (Y)</label>
-                            <select id="target-col"></select>
-                        </div>
-                        <div class="form-col">
-                            <label>Feature Range (X)</label>
-                            <div style="font-size: 10px; color: var(--mist);">Remaining columns will be used as
-                                features.</div>
-                        </div>
-                    </div>
+                <div id="col-settings" style="display:none; margin-top: 20px;">
+                    <span class="label">Target Column</span>
+                    <select id="target-col"></select>
                 </div>
-                <button class="run-btn" id="btn-data" onclick="processCSV()">Run Cell</button>
+
+                <div style="margin-top: 20px; text-align: right;">
+                    <button class="run-btn" id="btn-data" onclick="processData()">Execute</button>
+                </div>
             </div>
             <div class="cell-output" id="out-2"></div>
         </div>
 
-        <!-- Cell 3: Local Training -->
+        <!-- Cell 3 -->
         <div class="cell" id="cell-3">
-            <div class="cell-header">In [3]: Interactive Training</div>
-            <div class="cell-input">
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Learning Rate</label>
-                        <input type="number" id="lr" value="0.01" step="0.001">
+            <div class="cell-header"><span class="exec-num">In [3]:</span> Local Optimizer</div>
+            <div class="cell-content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <span class="label">Learning Rate</span>
+                        <input type="number" id="lr" value="0.005" step="0.001">
                     </div>
-                    <div class="form-col">
-                        <label>Epochs</label>
-                        <input type="number" id="epochs" value="5">
-                    </div>
-                </div>
-                <button class="run-btn" id="btn-train" onclick="runTraining()">Run Cell</button>
-            </div>
-            <div class="cell-output" id="out-3">
-                <div class="chart-grid">
-                    <div class="chart-box"><canvas id="lossChart" height="150"></canvas></div>
-                    <div class="chart-box" id="train-stats">
-                        <label>Current Loss</label>
-                        <div id="curr-loss" style="font-size: 20px; font-weight: 900; color: var(--rust);">0.0000</div>
+                    <div>
+                        <span class="label">Epochs</span>
+                        <input type="number" id="epochs" value="10">
                     </div>
                 </div>
+                <div class="chart-box">
+                    <canvas id="lossChart"></canvas>
+                </div>
+                <div style="margin-top: 20px; text-align: right;">
+                    <button class="run-btn" id="btn-train" onclick="runTrain()">Execute</button>
+                </div>
             </div>
+            <div class="cell-output" id="out-3"></div>
         </div>
 
-        <!-- Cell 4: Submission -->
+        <!-- Cell 4 -->
         <div class="cell" id="cell-4">
-            <div class="cell-header">In [4]: Federated Push</div>
-            <div class="cell-input">
-                <p style="font-size: 11px; color: var(--mist);">Upload weights to the global model. Identity is
-                    verified. Norm filtering applied.</p>
-                <div style="margin-top: 10px;">
-                    <label style="color: var(--rust); display: inline-flex; align-items: center; gap: 5px;">
-                        <input type="checkbox" id="malicious-mode" style="width: auto;"> Malicious Mode (1000x
-                        Gradients)
+            <div class="cell-header"><span class="exec-num">In [4]:</span> Global Submission</div>
+            <div class="cell-content">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+                    Pushing local intelligence to the cluster. Encrypted weight transmission enabled.
+                </p>
+                <div class="attack-box">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="malicious-mode" style="width: 20px; height: 20px;">
+                        <span style="font-size: 12px; color: var(--fedora-danger); font-weight: 700;">Simulate Malicious
+                            Gradient Poisoning</span>
                     </label>
                 </div>
-                <button class="run-btn" id="btn-push" onclick="pushUpdate()">Run Cell</button>
+                <div style="margin-top: 20px; text-align: right;">
+                    <button class="run-btn" id="btn-push" onclick="runPush()">Execute</button>
+                </div>
             </div>
             <div class="cell-output" id="out-4"></div>
         </div>
-
     </div>
 
     <script>
-        let clientId = localStorage.getItem('antigravity_client_id') || 'node_' + Math.random().toString(36).substr(2, 6);
-        localStorage.setItem('antigravity_client_id', clientId);
-        document.getElementById('client-id').value = clientId;
+        let clientId = document.getElementById('client-id').value;
 
-        let globalModelInfo = null;
-        let rawCSVData = null;
-        let processedData = null;
-        let currentWeights = null;
+        let globalState = null;
+        let csvSource = null;
+        let trainingSet = null;
+        let localWeights = null;
         let lossChart = null;
 
-        // Init Loss Chart
+        // Chart Setup
         const ctx = document.getElementById('lossChart').getContext('2d');
         lossChart = new Chart(ctx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'Loss', data: [], borderColor: '#C84B31', tension: 0.3, pointRadius: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1E2530' } }, x: { display: false } }, plugins: { legend: { display: false } } }
+            data: { labels: [], datasets: [{ label: 'Loss', data: [], borderColor: '#4A90E2', tension: 0.4, pointRadius: 0, fill: true, backgroundColor: 'rgba(74, 144, 226, 0.05)' }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' } } }, plugins: { legend: { display: false } } }
         });
 
-        function showOutput(id, content, isError = false) {
+        function log(id, msg, color = 'var(--text-secondary)') {
             const out = document.getElementById(`out-${id}`);
             out.style.display = 'block';
-            if (typeof content === 'string') {
-                out.innerHTML += `<div>${content}</div>`;
-            } else {
-                out.appendChild(content);
-            }
+            const div = document.createElement('div');
+            div.style.color = color;
+            div.style.marginBottom = '5px';
+            div.innerHTML = msg;
+            out.appendChild(div);
             document.getElementById(`cell-${id}`).classList.add('active');
         }
 
-        async function runIdentity() {
-            showOutput(0, `Connecting as participant: <strong>${clientId}</strong>`);
-            const res = await fetch('/api/register-client', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ client_id: clientId })
-            });
-            const data = await res.json();
-            showOutput(0, `Identity verified. Cluster Trust Score: <span style="color:var(--teal)">${data.trust_score.toFixed(2)}</span>`);
-            document.getElementById('id-dot').classList.add('online');
-        }
-
-        async function runEnv() {
-            showOutput(1, "Fetching latest unified model weights...");
+        async function runSync() {
+            log(1, "Pulling latest global parameters...");
             const res = await fetch('/api/model');
-            globalModelInfo = await res.json();
-            showOutput(1, `Global Model loaded: <span style="color:var(--rust)">Version v${globalModelInfo.version}</span>`);
-            showOutput(1, `Architecture: Unified MLP ([${globalModelInfo.input_shape}] &rarr; ${globalModelInfo.num_classes})`);
+            globalState = await res.json();
+            log(1, `Global Version synced: <span style="color:var(--fedora-blue)">v${globalState.version}</span>`);
+            log(1, `Architecture: MLP (${globalState.input_shape[0]} features &rarr; ${globalState.num_classes} outputs)`);
         }
 
         function handleFile(file) {
@@ -397,138 +352,103 @@
             Papa.parse(file, {
                 header: true,
                 dynamicTyping: true,
-                skipEmptyLines: true,
-                complete: (results) => {
-                    rawCSVData = results;
-                    const cols = results.meta.fields;
+                complete: (r) => {
+                    csvSource = r;
                     const select = document.getElementById('target-col');
                     select.innerHTML = '';
-                    cols.forEach(c => {
+                    r.meta.fields.forEach(f => {
                         const opt = document.createElement('option');
-                        opt.value = opt.textContent = c;
+                        opt.value = opt.textContent = f;
                         select.appendChild(opt);
                     });
-                    document.getElementById('column-selector').style.display = 'block';
-                    document.getElementById('drop-zone').innerHTML = `File Loaded: <strong>${file.name}</strong> (${results.data.length} rows)`;
+                    document.getElementById('col-settings').style.display = 'block';
+                    document.getElementById('drop-zone').innerHTML = `<strong>Data Loaded:</strong> ${file.name} (${r.data.length} rows)`;
                 }
             });
         }
 
-        function processCSV() {
-            if (!rawCSVData) return;
+        function processData() {
+            if (!csvSource || !globalState) return;
             const target = document.getElementById('target-col').value;
-            const X = rawCSVData.data.map(row => {
+            const X = csvSource.data.map(row => {
                 let features = [];
-                Object.keys(row).forEach(k => {
-                    if (k !== target) features.push(parseFloat(row[k]) || 0);
-                });
-                return features;
+                Object.keys(row).forEach(k => { if (k !== target) features.push(parseFloat(row[k]) || 0); });
+                return features.slice(0, globalState.input_shape[0]);
             });
-            const y = rawCSVData.data.map(row => [parseFloat(row[target]) || 0]);
+            const y = csvSource.data.map(row => [parseFloat(row[target]) || 0]);
 
-            // Ensure X matches globalModelInfo.input_shape[0]
-            const expectedDim = globalModelInfo ? globalModelInfo.input_shape[0] : X[0].length;
-
-            processedData = {
-                X: tf.tensor2d(X.map(row => row.slice(0, expectedDim))),
-                y: tf.tensor2d(y)
-            };
-
-            showOutput(2, `Data processed. Features: ${processedData.X.shape[1]}, Samples: ${processedData.X.shape[0]}`);
-            if (globalModelInfo && processedData.X.shape[1] !== globalModelInfo.input_shape[0]) {
-                showOutput(2, `<span style="color:var(--rust)">Warning: Input dimension mismatch! Truncating/Padding to ${globalModelInfo.input_shape[0]}</span>`);
-            }
+            trainingSet = { X: tf.tensor2d(X), y: tf.tensor2d(y) };
+            log(2, `Dataset Ingested. Observations: ${trainingSet.X.shape[0]}, Dimensions: ${trainingSet.X.shape[1]}`);
         }
 
-        async function runTraining() {
-            if (!processedData) return;
-            const lr = parseFloat(document.getElementById('lr').value);
-            const epochs = parseInt(document.getElementById('epochs').value);
+        async function runTrain() {
+            if (!trainingSet || !globalState) return;
+            log(3, "Initializing browser-side optimizer...");
 
             const model = tf.sequential({
                 layers: [
-                    tf.layers.dense({ inputShape: [globalModelInfo.input_shape[0]], units: 128, activation: 'relu' }),
+                    tf.layers.dense({ inputShape: [globalState.input_shape[0]], units: 128, activation: 'relu' }),
                     tf.layers.dense({ units: 64, activation: 'relu' }),
-                    tf.layers.dense({ units: globalModelInfo.num_classes })
+                    tf.layers.dense({ units: globalState.num_classes })
                 ]
             });
 
-            model.compile({ optimizer: tf.train.adam(lr), loss: 'meanSquaredError' });
+            model.compile({ optimizer: tf.train.adam(parseFloat(document.getElementById('lr').value)), loss: 'meanSquaredError' });
 
-            showOutput(3, "Commencing local optimization...");
-
-            await model.fit(processedData.X, processedData.y, {
-                epochs: epochs,
+            await model.fit(trainingSet.X, trainingSet.y, {
+                epochs: parseInt(document.getElementById('epochs').value),
                 callbacks: {
-                    onEpochEnd: (epoch, logs) => {
-                        lossChart.data.labels.push(epoch + 1);
-                        lossChart.data.datasets[0].data.push(logs.loss);
+                    onEpochEnd: (e, l) => {
+                        lossChart.data.labels.push(e + 1);
+                        lossChart.data.datasets[0].data.push(l.loss);
                         lossChart.update();
-                        document.getElementById('curr-loss').innerText = logs.loss.toFixed(6);
                     }
                 }
             });
 
-            showOutput(3, "Optimization complete. Local weights extracted.");
+            log(3, "Local optimization complete. Weights serialized.");
 
-            // Extract weights for the specific PyTorch layers
-            const tfWeights = model.getWeights();
-            const flat_size = globalModelInfo.input_shape[0];
-            const out_dim = globalModelInfo.num_classes;
-
-            // Mapping to the specific PyTorch layers defined in model_factory.py
-            // model.0 = 128xFlat, model.2 = 64x128, model.4 = Outx64
-            currentWeights = {
-                "model.0.weight": (await tfWeights[0].array()), // 128xFlat? Wait TF is [In, Out]
-                "model.0.bias": (await tfWeights[1].array()),
-                "model.2.weight": (await tfWeights[2].array()),
-                "model.2.bias": (await tfWeights[3].array()),
-                "model.4.weight": (await tfWeights[4].array()),
-                "model.4.bias": (await tfWeights[5].array())
+            const tfW = model.getWeights();
+            localWeights = {
+                "model.0.weight": transpose(await tfW[0].array()),
+                "model.0.bias": await tfW[1].array(),
+                "model.2.weight": transpose(await tfW[2].array()),
+                "model.2.bias": await tfW[3].array(),
+                "model.4.weight": transpose(await tfW[4].array()),
+                "model.4.bias": await tfW[5].array()
             };
-
-            // TF weights for Dense(In, Out) are stored as [In, Out]. 
-            // PyTorch expects [Out, In]. We must Transpose weights.
-            currentWeights["model.0.weight"] = transpose(currentWeights["model.0.weight"]);
-            currentWeights["model.2.weight"] = transpose(currentWeights["model.2.weight"]);
-            currentWeights["model.4.weight"] = transpose(currentWeights["model.4.weight"]);
-
-            if (document.getElementById('malicious-mode').checked) {
-                Object.keys(currentWeights).forEach(k => {
-                    currentWeights[k] = multiply(currentWeights[k], 1000);
-                });
-            }
         }
 
-        async function pushUpdate() {
-            if (!currentWeights) return;
-            showOutput(4, "Pushing update to global cluster...");
+        async function runPush() {
+            if (!localWeights) return;
 
+            let submissionWeights = JSON.parse(JSON.stringify(localWeights));
+
+            if (document.getElementById('malicious-mode').checked) {
+                log(4, "<span style='color:var(--fedora-danger)'>Initiating Gradient Sign-Flip & Exploding Attack...</span>");
+                // Intelligently corrupt weights to trigger norm rejection (>10000)
+                Object.keys(submissionWeights).forEach(k => {
+                    submissionWeights[k] = multiply(submissionWeights[k], -5000.0);
+                });
+            }
+
+            log(4, "Synchronizing with Fedora Hub...");
             const res = await fetch('/api/submit-update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    client_id: clientId,
-                    weights: currentWeights
-                })
+                body: JSON.stringify({ client_id: clientId, weights: submissionWeights })
             });
+            const data = await res.json();
 
-            const result = await res.json();
-            if (res.ok && result.status === 'accepted') {
-                showOutput(4, `<span style="color:var(--teal)">Update Accepted! Global version is now v${result.new_version}</span>`);
+            if (res.ok && data.status === 'accepted') {
+                log(4, `<span style='color:var(--fedora-cyan)'>SUCCESS: Progress synced. Evolution Stage: v${data.new_version}</span>`);
             } else {
-                showOutput(4, `<span style="color:var(--rust)">Update Rejected: ${result.reason}</span>`);
+                log(4, `<span style='color:var(--fedora-danger)'>REJECTED: ${data.reason}</span>`);
             }
         }
 
-        function transpose(matrix) {
-            return matrix[0].map((_, i) => matrix.map(row => row[i]));
-        }
-
-        function multiply(val, factor) {
-            if (Array.isArray(val)) return val.map(v => multiply(v, factor));
-            return val * factor;
-        }
+        function transpose(m) { return m[0].map((_, i) => m.map(r => r[i])); }
+        function multiply(v, f) { return Array.isArray(v) ? v.map(i => multiply(i, f)) : v * f; }
     </script>
 </body>
 

@@ -204,14 +204,16 @@
 
             {# ── Training Notebook ── #}
             {% elif page == 'train' %}
-            <a href="{% if is_host %}/dashboard/{% else %}/dashboard_client/{% endif %}" class="fedora-nav-link ghost">
-                {% if is_host %}Hub{% else %}Portal{% endif %}
+            <a href="{% if user.is_staff %}/dashboard/{% else %}/dashboard_client/{% endif %}"
+                class="fedora-nav-link ghost">
+                {% if user.is_staff %}Hub{% else %}Portal{% endif %}
             </a>
 
             {# ── Any other page ── #}
             {% else %}
-            <a href="{% if is_host %}/dashboard/{% else %}/dashboard_client/{% endif %}" class="fedora-nav-link ghost">
-                {% if is_host %}Hub{% else %}Portal{% endif %}
+            <a href="{% if user.is_staff %}/dashboard/{% else %}/dashboard_client/{% endif %}"
+                class="fedora-nav-link ghost">
+                {% if user.is_staff %}Hub{% else %}Portal{% endif %}
             </a>
             <a href="/train/" class="fedora-nav-link ghost">Notebook</a>
             {% endif %}

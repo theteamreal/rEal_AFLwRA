@@ -27,13 +27,13 @@ def is_host_request(request):
 
 @login_required
 def dashboard_view(request):
-    """Host admin dashboard — global federation overview."""
+    """Host admin dashboard — global federation overview (Staff only)."""
+    if not request.user.is_staff:
+        return redirect('dashboard_client')
+        
     is_host = is_host_request(request)
     latest_model = GlobalModel.objects.first()
-    Client.objects.get_or_create(
-        user=request.user,
-        defaults={'client_id': f"node_{request.user.username}_{random.randint(100, 999)}"}
-    )
+    # ... rest of the view remains same
     raw_clients = Client.objects.all().order_by('-last_update')
     recent_updates = ModelUpdateLog.objects.all().order_by('-timestamp')[:20]
 
@@ -60,6 +60,11 @@ def dashboard_view(request):
     fed_total    = all_logs.count()
     fed_rate     = f"{round(fed_accepted/fed_total*100)}%" if fed_total > 0 else "—"
 
+    my_client, _ = Client.objects.get_or_create(
+        user=request.user,
+        defaults={'client_id': f"node_{request.user.username}_{random.randint(100, 999)}"}
+    )
+
     context = {
         'title': 'Fedora Hub — Administration',
         'latest_model': latest_model,
@@ -69,6 +74,7 @@ def dashboard_view(request):
         'fed_rejected': fed_rejected,
         'fed_total': fed_total,
         'fed_rate': fed_rate,
+        'current_client_id': my_client.client_id,
         'page': 'dashboard',
         'is_host': is_host,
         'user': request.user,
@@ -91,6 +97,7 @@ def dashboard_client_view(request):
         'title': 'Fedora — Participant Portal',
         'latest_model': latest_model,
         'client': client,
+        'current_client_id': client.client_id,
         'recent_updates': recent_updates,
         'page': 'dashboard_client',
         'is_host': False,
@@ -131,7 +138,10 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            return redirect('dashboard')
+            if user.is_staff:
+                return redirect('dashboard')
+            else:
+                return redirect('dashboard_client')
     else:
         form = AuthenticationForm()
     return render(request, 'login.html', {'form': form, 'mode': 'login'})
@@ -142,7 +152,8 @@ def signup_view(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('dashboard')
+            # Fresh signups are always clients
+            return redirect('dashboard_client')
     else:
         form = UserCreationForm()
     return render(request, 'login.html', {'form': form, 'mode': 'signup'})
@@ -155,5 +166,8 @@ def logout_view(request):
 def landing_view(request):
     """Public landing page — shown to unauthenticated visitors at root URL."""
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        if request.user.is_staff:
+            return redirect('dashboard')
+        else:
+            return redirect('dashboard_client')
     return render(request, 'landing.html', {'page': 'landing'})

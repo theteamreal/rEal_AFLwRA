@@ -4,8 +4,10 @@
     :root {
         --bg: #070C14;
         --bg2: #0C1525;
-        --accent: #3B82F6;
-        --accent2: #10B981;
+        --accent: #8B5CF6;
+        /* Plasma Purple */
+        --accent2: #D946EF;
+        /* Magenta Blast */
         --danger: #EF4444;
         --gold: #F59E0B;
         --glass: rgba(255, 255, 255, 0.04);
@@ -468,8 +470,8 @@
         <div class="hero-row">
             <div>
                 <h1>My <em>Fedora</em> Node</h1>
-                <p class="hero-sub">Your personal contribution hub — track sync history, model quality impact, and node
-                    status in real time.</p>
+                <p class="hero-sub">Your personal participant workspace — monitoring local quality impact, trust score,
+                    and node synchronization history.</p>
             </div>
             <div class="hero-cta">
                 <a href="/train/" class="cta-btn-hero">⚡ Open Notebook →</a>
@@ -516,13 +518,13 @@
             <div class="chart-top">
                 <div class="metrics-legend">
                     <div class="legend-item">
-                        <div class="legend-dot" style="background:#3B82F6"></div> Local RMSE
+                        <div class="legend-dot" style="background:#8B5CF6"></div> Local RMSE
                     </div>
                     <div class="legend-item">
-                        <div class="legend-dot" style="background:#10B981"></div> Local MAE
+                        <div class="legend-dot" style="background:#D946EF"></div> Local MAE
                     </div>
                     <div class="legend-item">
-                        <div class="legend-dot" style="border:1px dashed #10B981; background:transparent;"></div> Global
+                        <div class="legend-dot" style="border:1px dashed #D946EF; background:transparent;"></div> Global
                         Benchmark
                     </div>
                 </div>
@@ -596,6 +598,74 @@
         </div>
     </div>
 
+    <!-- Version History -->
+    <div class="section">
+        <div class="section-head">
+            <h2>Version History</h2>
+            <span class="sub">Access global model checkpoints</span>
+        </div>
+        <div id="version-history-panel" class="table-card">
+            <div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">Loading history…</div>
+        </div>
+    </div>
+
+    <!-- Using Your Model -->
+    <div class="section" id="usage-guide">
+        <div class="section-head">
+            <h2>Using Your Model</h2>
+            <span class="sub">Load a downloaded checkpoint in Python</span>
+        </div>
+        <div class="chart-card" style="padding:0;overflow:hidden">
+            <!-- Header bar -->
+            <div
+                style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025)">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="display:flex;gap:5px">
+                        <span
+                            style="width:10px;height:10px;border-radius:50%;background:#EF4444;display:inline-block"></span>
+                        <span
+                            style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block"></span>
+                        <span
+                            style="width:10px;height:10px;border-radius:50%;background:#10B981;display:inline-block"></span>
+                    </div>
+                    <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">fedora_inference.py</span>
+                </div>
+                <button id="copy-snippet-btn" onclick="copySnippet()"
+                    style="font-family:var(--mono);font-size:10px;padding:5px 14px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:var(--accent);border-radius:6px;cursor:pointer;transition:all .2s;letter-spacing:1px">
+                    COPY
+                </button>
+            </div>
+            <!-- Code block -->
+            <pre id="usage-snippet"
+                style="margin:0;padding:22px 26px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:2;background:transparent;color:#E2E8F0"><code><span style="color:#64748B"># 1. Install dependencies (once)</span>
+<span style="color:#8B5CF6">import</span> torch
+<span style="color:#8B5CF6">import</span> json
+<span style="color:#8B5CF6">from</span> main.model_factory <span style="color:#8B5CF6">import</span> create_unified_model
+
+<span style="color:#64748B"># 2. Build model skeleton</span>
+model <span style="color:#F59E0B">=</span> create_unified_model(<span style="color:#10B981">input_dim</span><span style="color:#F59E0B">=</span><span style="color:#3B82F6">20</span>, <span style="color:#10B981">out_dim</span><span style="color:#F59E0B">=</span><span style="color:#3B82F6">1</span>)
+
+<span style="color:#64748B"># 3. Load downloaded checkpoint</span>
+<span style="color:#8B5CF6">with</span> open(<span style="color:#10B981">\'fedora_global_v<span id="snippet-ver">?</span>.json\'</span>, <span style="color:#10B981">'r'</span>) <span style="color:#8B5CF6">as</span> f:
+    weights <span style="color:#F59E0B">=</span> json.load(f)
+
+<span style="color:#64748B"># 4. Inject weights</span>
+sd <span style="color:#F59E0B">=</span> {k: torch.tensor(v) <span style="color:#8B5CF6">for</span> k, v <span style="color:#8B5CF6">in</span> weights.items()}
+model.load_state_dict(sd)
+model.<span style="color:#3B82F6">eval</span>()
+
+<span style="color:#64748B"># 5. Predict (one row, 20 features)</span>
+<span style="color:#8B5CF6">with</span> torch.no_grad():
+    res <span style="color:#F59E0B">=</span> model(my_new_data)
+    <span style="color:#3B82F6">print</span>(<span style="color:#10B981">f"Prediction: {res.item():.4f}"</span>)</code></pre>
+            <div
+                style="padding:14px 22px 18px;border-top:1px solid rgba(255,255,255,.05);font-size:12px;color:var(--muted);background:rgba(255,255,255,.015)">
+                📥 Download a checkpoint from <strong style="color:var(--text)">Version History</strong> above to use
+                this code.
+            </div>
+        </div>
+    </div>
+
     <!-- Node Status Strip -->
     <div class="node-strip">
         <div class="node-pill">
@@ -632,7 +702,6 @@
             const data = await res.json();
 
             const history = (data.history || []).slice().reverse();
-
             const acc = (data.history || []).filter(h => h.accepted).length;
             const rej = (data.history || []).filter(h => !h.accepted).length;
             const total = acc + rej;
@@ -664,31 +733,31 @@
                         {
                             label: 'Local RMSE',
                             data: rmseData,
-                            borderColor: '#3B82F6',
-                            backgroundColor: 'rgba(59,130,246,0.08)',
+                            borderColor: '#8B5CF6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.08)',
                             tension: 0.4,
                             pointRadius: 4,
                             pointHoverRadius: 6,
-                            pointBackgroundColor: '#3B82F6',
+                            pointBackgroundColor: '#8B5CF6',
                             fill: true,
                             spanGaps: true,
                         },
                         {
                             label: 'Local MAE',
                             data: maeData,
-                            borderColor: '#10B981',
-                            backgroundColor: 'rgba(16,185,129,0.06)',
+                            borderColor: '#D946EF',
+                            backgroundColor: 'rgba(217, 70, 239, 0.06)',
                             tension: 0.4,
                             pointRadius: 4,
                             pointHoverRadius: 6,
-                            pointBackgroundColor: '#10B981',
+                            pointBackgroundColor: '#D946EF',
                             fill: true,
                             spanGaps: true,
                         },
                         {
                             label: 'Global Benchmark',
                             data: labels.map(() => data.global_best_rmse || 0),
-                            borderColor: 'rgba(16,185,129,0.5)',
+                            borderColor: 'rgba(217, 70, 239, 0.5)',
                             borderDash: [5, 5],
                             borderWidth: 1.5,
                             pointRadius: 0,
@@ -722,7 +791,94 @@
         }
     }
 
+    // ── Version History ─────────────────────────────────────────────────────
+    const verPanel = document.getElementById('version-history-panel');
+
+    function fmtDate(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function copySnippet() {
+        const code = document.getElementById('usage-snippet').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+            const btn = document.getElementById('copy-snippet-btn');
+            btn.textContent = 'COPIED!';
+            btn.style.background = 'rgba(16,185,129,0.1)';
+            btn.style.color = 'var(--accent2)';
+            setTimeout(() => {
+                btn.textContent = 'COPY';
+                btn.style.background = 'rgba(59,130,246,0.1)';
+                btn.style.color = 'var(--accent)';
+            }, 2000);
+        });
+    }
+
+    function updateSnippet(ver) {
+        document.getElementById('snippet-ver').textContent = ver;
+        const guide = document.getElementById('usage-guide');
+        guide.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        guide.style.transition = 'all 0.4s ease';
+        guide.style.boxShadow = '0 0 40px rgba(59,130,246,0.15)';
+        setTimeout(() => { guide.style.boxShadow = 'none'; }, 1500);
+    }
+
+    async function loadVersionHistory() {
+        try {
+            const res = await fetch('/api/versions');
+            if (!res.ok) return;
+            const data = await res.json();
+            const versions = data.versions || [];
+
+            if (!versions.length) {
+                verPanel.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--muted);font-size:13px">No checkpoints found.</div>';
+                return;
+            }
+
+            verPanel.innerHTML = `
+            <table style="width:100%;border-collapse:collapse">
+                <thead>
+                    <tr style="background:rgba(255,255,255,.01)">
+                        <th style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)">Version</th>
+                        <th style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)">Best RMSE</th>
+                        <th style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)">Best MAE</th>
+                        <th style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)">Created</th>
+                        <th style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)"></th>
+                    </tr>
+                </thead>
+                <tbody id="ver-tbody"></tbody>
+            </table>`;
+
+            const tbody = document.getElementById('ver-tbody');
+            versions.forEach((v, idx) => {
+                const row = document.createElement('tr');
+                if (v.contributed) row.style.background = 'rgba(16,185,129,0.03)';
+
+                row.innerHTML = `
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+                        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:#E2E8F0">v${v.version}</span>
+                        ${idx === 0 ? '<span style="margin-left:8px;padding:1px 5px;border-radius:3px;font-size:8px;font-family:var(--mono);background:rgba(59,130,246,.15);color:var(--accent);border:1px solid rgba(59,130,246,.2)">LATEST</span>' : ''}
+                        ${v.contributed ? '<span style="margin-left:8px;padding:1px 5px;border-radius:3px;font-size:8px;font-family:var(--mono);background:rgba(16,185,129,.15);color:var(--accent2);border:1px solid rgba(16,185,129,.2)">✓ CONTRIBUTED</span>' : ''}
+                    </td>
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--text)">${v.best_rmse != null ? v.best_rmse : '—'}</td>
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--text)">${v.best_mae != null ? v.best_mae : '—'}</td>
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted);font-size:12px">${fmtDate(v.created_at)}</td>
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);text-align:right">
+                        ${v.weights_available
+                        ? `<a href="/api/download/${v.version}" onclick="updateSnippet('${v.version}')" download
+                                style="padding:6px 14px;border-radius:6px;font-size:10px;font-family:var(--mono);background:rgba(59,130,246,0.1);color:var(--accent);border:1px solid rgba(59,130,246,0.2);text-decoration:none;transition:all 0.2s">↓ DOWNLOAD</a>`
+                        : '<span style="font-size:9px;color:var(--muted);font-family:var(--mono)">NO WEIGHTS</span>'}
+                    </td>`;
+                tbody.appendChild(row);
+            });
+        } catch (e) { console.warn('History load failed:', e); }
+    }
+
     loadMetrics();
+    loadVersionHistory();
     setInterval(loadMetrics, 25000);
+    setInterval(loadVersionHistory, 60000);
 </script>
 {% endblock %}

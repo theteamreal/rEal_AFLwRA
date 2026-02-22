@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query, Request
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import asyncio
@@ -356,25 +356,28 @@ async def rollback_to_version(target_version: int):
 
 
 @router.get("/metrics-history")
-async def metrics_history(client_id: str = Query(...), limit: int = Query(10)):
+async def metrics_history(client_id: Optional[str] = Query(None), limit: int = Query(10)):
     try:
         from main.models import ModelUpdateLog, Client, GlobalModel
 
         def _fetch():
-            try:
-                client = Client.objects.get(client_id=client_id)
-            except Client.DoesNotExist:
-                return None, []
-            logs = (
-                ModelUpdateLog.objects
-                .filter(client=client)
-                .order_by("-timestamp")[:limit]
-            )
+            client = None
+            if client_id:
+                try:
+                    client = Client.objects.get(client_id=client_id)
+                except Client.DoesNotExist:
+                    return None, None, []
+            
+            queryset = ModelUpdateLog.objects.all()
+            if client:
+                queryset = queryset.filter(client=client)
+            
+            logs = queryset.order_by("-timestamp")[:limit]
             latest_model = GlobalModel.objects.first()
-            return latest_model, list(logs)
+            return latest_model, client_id, list(logs)
 
-        latest_model, logs = await sync_to_async(_fetch)()
-        if logs is None:
+        latest_model, input_cid, logs = await sync_to_async(_fetch)()
+        if input_cid and logs is None:
             raise HTTPException(status_code=404, detail="Client not found")
 
         history = []
@@ -405,17 +408,28 @@ async def metrics_history(client_id: str = Query(...), limit: int = Query(10)):
 
 
 @router.get("/versions")
-async def list_versions():
+async def list_versions(request: Request):
     """Return a summary list of all saved GlobalModel checkpoints, newest first."""
-    from main.models import GlobalModel
+    from main.models import GlobalModel, ModelUpdateLog, Client
 
     def _fetch():
-        return list(GlobalModel.objects.all().order_by("-version"))
-
-    models = await sync_to_async(_fetch)()
-    return {
-        "versions": [
-            {
+        user = request.scope.get("user")
+        client = None
+        if user and user.is_authenticated:
+            client = Client.objects.filter(user=user).first()
+        
+        models = list(GlobalModel.objects.all().order_by("-version"))
+        versions_data = []
+        for m in models:
+            contributed = False
+            if client:
+                contributed = ModelUpdateLog.objects.filter(
+                    base_version=m.version, 
+                    client=client, 
+                    accepted=True
+                ).exists()
+            
+            versions_data.append({
                 "version":        m.version,
                 "created_at":     m.created_at.isoformat() if m.created_at else None,
                 "best_rmse":      round(m.best_rmse, 4) if m.best_rmse is not None else None,
@@ -423,10 +437,12 @@ async def list_versions():
                 "accepted_count": m.accepted_count,
                 "rejected_count": m.rejected_count,
                 "weights_available": os.path.exists(m.weights_path),
-            }
-            for m in models
-        ]
-    }
+                "contributed":    contributed
+            })
+        return versions_data
+
+    versions = await sync_to_async(_fetch)()
+    return {"versions": versions}
 
 
 @router.get("/version-detail/{version}")

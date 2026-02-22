@@ -484,13 +484,13 @@
         <div class="stat-card green">
             <div class="stat-icon">✅</div>
             <div class="stat-label">Accepted Updates</div>
-            <div class="stat-value">{{ fed_accepted }}</div>
+            <div class="stat-value"><span id="fedAccepted"></span>{{ fed_accepted }}</span></div>
             <div class="stat-trend">Integrated into global model</div>
         </div>
         <div class="stat-card red">
             <div class="stat-icon">❌</div>
             <div class="stat-label">Rejected Updates</div>
-            <div class="stat-value">{{ fed_rejected }}</div>
+            <div class="stat-value"><span id="fedRejected">{{ fed_rejected }}</span></div>
             <div class="stat-trend">Quality-gated or flagged</div>
         </div>
         <div class="stat-card purple">
@@ -509,15 +509,17 @@
         </div>
         <div class="info-pill">
             <div class="il">Global Best RMSE</div>
-            <div class="iv">{% if latest_model.best_rmse %}{{ latest_model.best_rmse|stringformat:".4f" }}{% else %}—{% endif %}</div>
+            <div class="iv"><span id="globalRmse">{% if latest_model.best_rmse %}{{
+                    latest_model.best_rmse|stringformat:".4f" }}{% else %}—{% endif %}</span></div>
         </div>
         <div class="info-pill">
             <div class="il">Global Best MAE</div>
-            <div class="iv">{% if latest_model.best_mae %}{{ latest_model.best_mae|stringformat:".4f" }}{% else %}—{% endif %}</div>
+            <div class="iv"><span id="globalMae">{% if latest_model.best_mae %}{{
+                    latest_model.best_mae|stringformat:".4f" }}{% else %}—{% endif %}</span></div>
         </div>
         <div class="info-pill">
             <div class="il">Acceptance Rate</div>
-            <div class="iv">{{ fed_rate }}</div>
+            <div class="iv"><span id="fedRate">{{ fed_rate }}</span></div>
         </div>
     </div>
 
@@ -663,6 +665,66 @@
             <div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">Loading…</div>
         </div>
     </div>
+    <!-- Using Your Model -->
+    <div class="section" id="usage-guide">
+        <div class="section-head">
+            <h2>Using Your Model</h2>
+            <span class="sub">Load a downloaded checkpoint in Python</span>
+        </div>
+        <div class="chart-card" style="padding:0;overflow:hidden" data-client-id="{{ current_client_id }}">
+            <!-- Header bar -->
+            <div
+                style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025)">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="display:flex;gap:5px">
+                        <span
+                            style="width:10px;height:10px;border-radius:50%;background:#EF4444;display:inline-block"></span>
+                        <span
+                            style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block"></span>
+                        <span
+                            style="width:10px;height:10px;border-radius:50%;background:#10B981;display:inline-block"></span>
+                    </div>
+                    <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">fedora_inference.py</span>
+                </div>
+                <button id="copy-snippet-btn" onclick="copySnippet()"
+                    style="font-family:var(--mono);font-size:10px;padding:5px 14px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:var(--accent);border-radius:6px;cursor:pointer;transition:all .2s;letter-spacing:1px">
+                    COPY
+                </button>
+            </div>
+            <!-- Code block -->
+            <pre id="usage-snippet"
+                style="margin:0;padding:22px 26px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:2;background:transparent;color:#E2E8F0"><code><span style="color:#64748B"># 1. Install dependencies (once)</span>
+<span style="color:#64748B">#    pip install torch</span>
+
+<span style="color:#8B5CF6">import</span> torch
+<span style="color:#8B5CF6">import</span> json
+<span style="color:#8B5CF6">from</span> main.model_factory <span style="color:#8B5CF6">import</span> create_unified_model
+
+<span style="color:#64748B"># 2. Build the model skeleton (must match training config)</span>
+model <span style="color:#F59E0B">=</span> create_unified_model(<span style="color:#10B981">input_dim</span><span style="color:#F59E0B">=</span><span style="color:#3B82F6">20</span>, <span style="color:#10B981">out_dim</span><span style="color:#F59E0B">=</span><span style="color:#3B82F6">1</span>)
+
+<span style="color:#64748B"># 3. Load the downloaded checkpoint  ← replace filename as needed</span>
+<span style="color:#8B5CF6">with</span> open(<span style="color:#10B981" id="snippet-filename">'fedora_global_v<span id="snippet-ver">?</span>.json'</span>, <span style="color:#10B981">'r'</span>) <span style="color:#8B5CF6">as</span> f:
+    weights <span style="color:#F59E0B">=</span> json.load(f)
+
+<span style="color:#64748B"># 4. Inject weights into skeleton</span>
+state_dict <span style="color:#F59E0B">=</span> {k: torch.tensor(v) <span style="color:#8B5CF6">for</span> k, v <span style="color:#8B5CF6">in</span> weights.items()}
+model.load_state_dict(state_dict)
+model.<span style="color:#3B82F6">eval</span>()   <span style="color:#64748B"># switch to inference mode</span>
+
+<span style="color:#64748B"># 5. Predict</span>
+<span style="color:#64748B">#    my_new_data must be a [1, 20] float32 tensor (one row, 20 features)</span>
+<span style="color:#8B5CF6">with</span> torch.no_grad():
+    prediction <span style="color:#F59E0B">=</span> model(my_new_data)
+    <span style="color:#3B82F6">print</span>(<span style="color:#10B981">f"Predicted value: {prediction.item():.4f}"</span>)</code></pre>
+            <!-- Footer hint -->
+            <div id="usage-guide-hint"
+                style="padding:14px 22px 18px;border-top:1px solid rgba(255,255,255,.05);font-size:12px;color:var(--muted);background:rgba(255,255,255,.015)">
+                📥 Download a checkpoint from <strong style="color:var(--text)">Version History</strong> above, then
+                load it using the snippet above.
+            </div>
+        </div>
+    </div>
 
 </div>
 {% endblock %}
@@ -763,36 +825,62 @@
         return 'var(--danger)';
     }
 
+    function copySnippet() {
+        const code = document.getElementById('usage-snippet').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+            const btn = document.getElementById('copy-snippet-btn');
+            btn.textContent = 'COPIED!';
+            btn.style.background = 'rgba(16,185,129,0.1)';
+            btn.style.color = 'var(--accent2)';
+            setTimeout(() => {
+                btn.textContent = 'COPY';
+                btn.style.background = 'rgba(59,130,246,0.1)';
+                btn.style.color = 'var(--accent)';
+            }, 2000);
+        });
+    }
+
+    function updateSnippet(ver) {
+        document.getElementById('snippet-ver').textContent = ver;
+        const guide = document.getElementById('usage-guide');
+        guide.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Pulse effect
+        guide.style.transition = 'all 0.4s ease';
+        guide.style.boxShadow = '0 0 40px rgba(59,130,246,0.15)';
+        setTimeout(() => {
+            guide.style.boxShadow = 'none';
+        }, 1500);
+    }
+
     async function toggleContributors(ver, btn, container) {
         if (container.style.display !== 'none') {
             container.style.display = 'none';
-            btn.textContent = '▸';
+            btn.textContent = 'INSPECT';
             return;
         }
-        btn.textContent = '…';
+        btn.textContent = 'LOADING…';
         try {
             const res = await fetch(`/api/version-detail/${ver}`);
             const data = await res.json();
             const contribs = data.contributors || [];
             if (!contribs.length) {
-                container.innerHTML = '<p style="padding:12px 20px;color:var(--muted);font-size:12px">No contributors recorded for this version.</p>';
+                container.innerHTML = '<p style="padding:16px 20px;color:var(--muted);font-size:12px">No contributors recorded for this version.</p>';
             } else {
                 container.innerHTML = `
                 <table style="width:100%;border-collapse:collapse;background:rgba(0,0,0,.15)">
                     <thead>
                         <tr>
-                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Node</th>
-                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Status</th>
-                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Local RMSE</th>
-                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Norm</th>
-                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Staleness</th>
+                            <th style="padding:10px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Node ID</th>
+                            <th style="padding:10px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Status</th>
+                            <th style="padding:10px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">RMSE</th>
+                            <th style="padding:10px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Norm</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${contribs.map(c => `
                         <tr>
-                            <td style="padding:9px 16px;font-family:var(--mono);font-size:11px;color:#CBD5E1;border-bottom:1px solid rgba(255,255,255,.03)">${c.client_id}</td>
-                            <td style="padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.03)">
+                            <td style="padding:10px 16px;font-family:var(--mono);font-size:11px;color:#CBD5E1;border-bottom:1px solid rgba(255,255,255,.03)">${c.client_id}</td>
+                            <td style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.03)">
                                 <span style="padding:2px 7px;border-radius:3px;font-size:9px;font-family:var(--mono);font-weight:700;text-transform:uppercase;
                                     background:${c.accepted ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)'};
                                     color:${c.accepted ? 'var(--accent2)' : 'var(--danger)'};
@@ -800,9 +888,8 @@
                                     ${c.accepted ? 'Accepted' : 'Rejected'}
                                 </span>
                             </td>
-                            <td style="padding:9px 16px;font-family:var(--mono);font-size:11px;color:${rmseColor(c.local_rmse)};border-bottom:1px solid rgba(255,255,255,.03)">${c.local_rmse != null ? c.local_rmse : '—'}</td>
-                            <td style="padding:9px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.03)">${c.norm}</td>
-                            <td style="padding:9px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.03)">${c.staleness}</td>
+                            <td style="padding:10px 16px;font-family:var(--mono);font-size:11px;color:${rmseColor(c.local_rmse)};border-bottom:1px solid rgba(255,255,255,.03)">${c.local_rmse != null ? c.local_rmse : '—'}</td>
+                            <td style="padding:10px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.03)">${c.norm.toFixed(4)}</td>
                         </tr>`).join('')}
                     </tbody>
                 </table>`;
@@ -811,7 +898,7 @@
             container.innerHTML = `<p style="padding:12px 20px;color:var(--danger);font-size:12px">Failed to load contributors: ${e.message}</p>`;
         }
         container.style.display = 'block';
-        btn.textContent = '▾';
+        btn.textContent = 'CLOSE';
     }
 
     async function loadVersionHistory() {
@@ -822,23 +909,20 @@
             const versions = data.versions || [];
 
             if (!versions.length) {
-                verPanel.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--muted);font-size:13px">No checkpoints saved yet — train the first round to create a global model.</div>';
+                verPanel.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--muted);font-size:13px">No checkpoints saved yet.</div>';
                 return;
             }
 
             verPanel.innerHTML = `
             <table style="width:100%;border-collapse:collapse">
                 <thead>
-                    <tr>
-                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)"></th>
-                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Version</th>
-                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Created</th>
-                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Best RMSE</th>
-                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Best MAE</th>
-                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Accepted</th>
-                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Rejected</th>
-                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Weights</th>
-                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)"></th>
+                    <tr style="background:rgba(255,255,255,.01)">
+                        <th style="padding:16px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">Version</th>
+                        <th style="padding:16px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">Best RMSE</th>
+                        <th style="padding:16px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">Best MAE</th>
+                        <th style="padding:16px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">Contributors</th>
+                        <th style="padding:16px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">Created</th>
+                        <th style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)"></th>
                     </tr>
                 </thead>
                 <tbody id="ver-tbody"></tbody>
@@ -846,50 +930,49 @@
 
             const tbody = document.getElementById('ver-tbody');
             versions.forEach((v, idx) => {
-                const isLatest = idx === 0;
                 const rid = `contribs-v${v.version}`;
                 const row = document.createElement('tr');
+                if (v.contributed) row.style.background = 'rgba(16,185,129,0.03)';
+
                 row.innerHTML = `
-                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
-                        <button id="expand-${v.version}" onclick="toggleContributors(${v.version}, this, document.getElementById('${rid}'))"
-                            style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;line-height:1;transition:color .2s"
-                            title="Show contributors">▸</button>
-                    </td>
-                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
                         <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:#E2E8F0">v${v.version}</span>
-                        ${isLatest ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:9px;font-family:var(--mono);background:rgba(59,130,246,.12);color:var(--accent);border:1px solid rgba(59,130,246,.22)">LATEST</span>' : ''}
+                        ${idx === 0 ? '<span style="margin-left:8px;padding:1px 5px;border-radius:3px;font-size:8px;font-family:var(--mono);background:rgba(59,130,246,.15);color:var(--accent);border:1px solid rgba(59,130,246,.2)">LATEST</span>' : ''}
+                        ${v.contributed ? '<span style="margin-left:8px;padding:1px 5px;border-radius:3px;font-size:8px;font-family:var(--mono);background:rgba(16,185,129,.15);color:var(--accent2);border:1px solid rgba(16,185,129,.2)">✓ CONTRIBUTED</span>' : ''}
                     </td>
-                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted);font-size:12px">${fmtDate(v.created_at)}</td>
-                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:${rmseColor(v.best_rmse)}">${v.best_rmse != null ? v.best_rmse : '—'}</td>
-                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--muted)">${v.best_mae != null ? v.best_mae : '—'}</td>
-                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--accent2)">${v.accepted_count}</td>
-                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--danger)">${v.rejected_count}</td>
-                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
-                        ${v.weights_available
-                        ? '<span style="color:var(--accent2);font-size:11px;font-family:var(--mono)">✓ on disk</span>'
-                        : '<span style="color:var(--muted);font-size:11px;font-family:var(--mono)">✗ missing</span>'}
-                    </td>
-                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
-                        ${v.weights_available
-                        ? `<a href="/api/download/${v.version}" download style="padding:5px 12px;border-radius:6px;font-size:11px;font-family:var(--mono);background:rgba(59,130,246,.1);color:var(--accent);border:1px solid rgba(59,130,246,.2);text-decoration:none;transition:all .2s;white-space:nowrap">↓ Download</a>`
-                        : ''}
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:${rmseColor(v.best_rmse)}">${v.best_rmse != null ? v.best_rmse : '—'}</td>
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--muted)">${v.best_mae != null ? v.best_mae : '—'}</td>
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--text)">${v.accepted_count}</td>
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted);font-size:12px">${fmtDate(v.created_at)}</td>
+                    <td style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);text-align:right">
+                        <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center">
+                            ${v.weights_available
+                        ? `<a href="/api/download/${v.version}" onclick="updateSnippet('${v.version}')" download
+                                    style="padding:6px 14px;border-radius:6px;font-size:10px;font-family:var(--mono);background:rgba(59,130,246,0.1);color:var(--accent);border:1px solid rgba(59,130,246,0.2);text-decoration:none;transition:all 0.2s">↓ DOWNLOAD</a>`
+                        : '<span style="font-size:9px;color:var(--muted);font-family:var(--mono)">NO WEIGHTS</span>'}
+                            <button onclick="toggleContributors('${v.version}', this, document.getElementById('${rid}'))"
+                                style="padding:6px 14px;border-radius:6px;font-size:10px;font-family:var(--mono);background:rgba(255,255,255,0.05);color:var(--text);border:1px solid rgba(255,255,255,0.1);cursor:pointer;transition:all 0.2s">INSPECT</button>
+                        </div>
                     </td>`;
                 tbody.appendChild(row);
 
                 // Contributor sub-row
                 const subRow = document.createElement('tr');
-                subRow.innerHTML = `<td colspan="9" style="padding:0;border-bottom:1px solid rgba(255,255,255,.06)">
+                subRow.innerHTML = `<td colspan="6" style="padding:0;border-bottom:1px solid rgba(255,255,255,.06)">
                     <div id="${rid}" style="display:none"></div></td>`;
                 tbody.appendChild(subRow);
             });
 
         } catch (e) {
-            verPanel.innerHTML = `<div style="padding:30px 20px;text-align:center;color:var(--danger);font-size:13px">Error loading versions: ${e.message}</div>`;
+            verPanel.innerHTML = `<div style="padding:30px 20px;text-align:center;color:var(--danger);font-size:13px">Error: ${e.message}</div>`;
         }
     }
 
     loadFedStats();
     loadVersionHistory();
-    setInterval(loadFedStats, 30000);
+    // 5-second full page reload as requested for real-time monitoring
+    setTimeout(() => {
+        location.reload();
+    }, 5000);
 </script>
 {% endblock %}

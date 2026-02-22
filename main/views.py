@@ -117,3 +117,10 @@ def signup_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+
+def landing_view(request):
+    """Public landing page — shown to unauthenticated visitors at root URL."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'landing.html', {'page': 'landing'})

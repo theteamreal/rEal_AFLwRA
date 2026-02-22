@@ -1,203 +1,273 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fedora — Gateway</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@700;900&display=swap"
-        rel="stylesheet">
-    <style>
-        :root {
-            --bg-deep: #05070A;
-            --fedora-blue: #4A90E2;
-            --fedora-cyan: #50E3C2;
-            --glass-bg: rgba(20, 26, 38, 0.85);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-primary: #E6EBF5;
-            --text-secondary: #8B9BAA;
-            --mono: 'DM Mono', monospace;
-            --serif: 'Fraunces', serif;
+{% block title %}Fedora — Gateway{% endblock %}
+
+{% block extra_head %}
+<style>
+    html,
+    body {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .fedora-body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 56px);
+        padding: 0 20px;
+    }
+
+    /* ── Auth Card ── */
+    .auth-card {
+        width: 420px;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(24px) saturate(1.2);
+        -webkit-backdrop-filter: blur(24px) saturate(1.2);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow:
+            0 24px 80px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        animation: cardIn 0.7s cubic-bezier(0.4, 0, 0.15, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .auth-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(165deg,
+                rgba(255, 255, 255, 0.04) 0%,
+                transparent 40%);
+        pointer-events: none;
+        border-radius: 20px;
+    }
+
+    @keyframes cardIn {
+        from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.98);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
         }
+    }
 
-        body {
-            background: var(--bg-deep);
-            background-image:
-                radial-gradient(at 10% 20%, rgba(74, 144, 226, 0.05) 0px, transparent 50%),
-                radial-gradient(at 90% 80%, rgba(80, 227, 194, 0.03) 0px, transparent 50%);
-            color: var(--text-primary);
-            font-family: var(--mono);
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
+    /* ── Brand ── */
+    .brand {
+        font-family: 'Fraunces', serif;
+        font-size: 28px;
+        font-weight: 900;
+        margin-bottom: 8px;
+        text-align: center;
+        color: #fff;
+    }
 
+    .subtitle {
+        text-align: center;
+        font-size: 10px;
+        font-family: 'DM Mono', monospace;
+        color: rgba(255, 255, 255, 0.35);
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        margin-bottom: 40px;
+    }
+
+    /* ── Form ── */
+    .form-group {
+        margin-bottom: 22px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 9px;
+        font-family: 'DM Mono', monospace;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 14px 16px;
+        color: #fff;
+        font-family: 'DM Mono', monospace;
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.25s, background 0.25s;
+    }
+
+    .form-group input:focus {
+        border-color: rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.07);
+    }
+
+    .form-group input::placeholder {
+        color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ── Auth Button (frosted glass, no glow) ── */
+    .auth-btn {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        color: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 16px;
+        border-radius: 10px;
+        font-family: 'DM Mono', monospace;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        cursor: pointer;
+        margin-top: 12px;
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .auth-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg,
+                transparent,
+                rgba(255, 255, 255, 0.06),
+                transparent);
+        transition: left 0.5s ease;
+    }
+
+    .auth-btn:hover {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .auth-btn:hover::before {
+        left: 100%;
+    }
+
+    .auth-btn:active {
+        transform: translateY(0);
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* ── Toggle Link ── */
+    .toggle-link {
+        text-align: center;
+        margin-top: 28px;
+        font-size: 12px;
+        font-family: 'DM Mono', monospace;
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    .toggle-link a {
+        color: rgba(255, 255, 255, 0.65);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        padding-bottom: 1px;
+        transition: color 0.2s, border-color 0.2s;
+    }
+
+    .toggle-link a:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    /* ── Errors ── */
+    .error-list {
+        list-style: none;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 80, 80, 0.2);
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 11px;
+        color: rgba(255, 120, 120, 0.9);
+        font-family: 'DM Mono', monospace;
+    }
+
+    .error-list li {
+        margin-bottom: 4px;
+    }
+
+    .error-list li:last-child {
+        margin-bottom: 0;
+    }
+
+    /* ── Password help text ─ */
+    .helptext,
+    ul.helptext,
+    .form-group ul {
+        list-style: none;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.2);
+        font-family: 'DM Mono', monospace;
+        margin-top: 6px;
+        line-height: 1.6;
+    }
+
+    @media (max-width: 480px) {
         .auth-card {
-            width: 420px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 50px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-            transform: translateY(0);
-            animation: floatIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        @keyframes floatIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .brand {
-            font-family: var(--serif);
-            font-size: 28px;
-            font-weight: 900;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .brand span {
-            color: var(--fedora-blue);
-        }
-
-        .subtitle {
-            text-align: center;
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 2.5px;
-            margin-bottom: 40px;
-        }
-
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        label {
-            display: block;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-
-        input {
             width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            padding: 14px 16px;
-            color: white;
-            font-family: var(--mono);
-            outline: none;
-            transition: border-color 0.3s;
+            padding: 36px 28px;
+            border-radius: 16px;
         }
+    }
+</style>
+{% endblock %}
 
-        input:focus {
-            border-color: var(--fedora-blue);
-        }
+{% block content %}
+<div class="auth-card">
+    <div class="brand">Fedora</div>
+    <div class="subtitle">{% if mode == 'login' %}Authenticate Node{% else %}Initialize Node{% endif %}</div>
 
-        .auth-btn {
-            width: 100%;
-            background: linear-gradient(90deg, var(--fedora-blue), #357ABD);
-            color: white;
-            border: none;
-            padding: 16px;
-            border-radius: 8px;
-            font-family: var(--mono);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
+    {% if form.errors %}
+    <ul class="error-list">
+        {% for field in form %}
+        {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+    {% endif %}
 
-        .auth-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.4);
-        }
-
-        .toggle-link {
-            text-align: center;
-            margin-top: 25px;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .toggle-link a {
-            color: var(--fedora-blue);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .error-list {
-            list-style: none;
-            background: rgba(255, 77, 77, 0.1);
-            border: 1px solid rgba(255, 77, 77, 0.2);
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 12px;
-            color: var(--fedora-danger);
-        }
-    </style>
-</head>
-
-<body>
-    <div class="auth-card">
-        <div class="brand">Fe<span>dora</span></div>
-        <div class="subtitle">Unified Intelligence Node</div>
-
-        {% if form.errors %}
-        <ul class="error-list">
-            {% for field in form %}
-            {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
-            {% endfor %}
-            {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
-        </ul>
-        {% endif %}
-
-        <form method="POST">
-            {% csrf_token %}
-            {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-            </div>
-            {% endfor %}
-
-            <button type="submit" class="auth-btn">
-                {% if mode == 'login' %}Enter Hub{% else %}Initialize Account{% endif %}
-            </button>
-        </form>
-
-        <div class="toggle-link">
-            {% if mode == 'login' %}
-            Don't have a node yet? <a href="/signup/">Signup</a>
-            {% else %}
-            Already registered? <a href="/login/">Login</a>
-            {% endif %}
+    <form method="POST">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
         </div>
-    </div>
-</body>
+        {% endfor %}
 
-</html>
+        <button type="submit" class="auth-btn">
+            {% if mode == 'login' %}Enter Hub{% else %}Initialize Account{% endif %}
+        </button>
+    </form>
+
+    <div class="toggle-link">
+        {% if mode == 'login' %}
+        Don't have a node yet? <a href="/signup/">Sign up</a>
+        {% else %}
+        Already registered? <a href="/login/">Log in</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

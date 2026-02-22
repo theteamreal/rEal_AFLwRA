@@ -937,6 +937,7 @@
         /* ── State ─────────────────────────────────────────────────────────── */
         const clientId = document.getElementById('client-id').value;
         let globalState = null;
+        let globalSchema = null;   // {columns:[], means:[], stds:[], registered:bool}
         let csvRawSource = null;
         let trainingSet = null;
         let localWeights = null;
@@ -1019,11 +1020,21 @@
             log(1, 'Pulling global model parameters from Fedora Hub…');
 
             try {
-                const res = await fetch('/api/model');
-                globalState = await res.json();
+                const [modelRes, schemaRes] = await Promise.all([
+                    fetch('/api/model'),
+                    fetch('/api/schema')
+                ]);
+                globalState = await modelRes.json();
+                globalSchema = await schemaRes.json();
 
                 log(1, `Global model synced — version: <span class="log-ok">v${globalState.version}</span>`);
                 log(1, `Architecture: MLP | Input dim: <span style="color:var(--accent2)">${globalState.input_shape[0]}</span> | Output: <span style="color:var(--accent2)">${globalState.num_classes}</span>`);
+
+                if (globalSchema.registered) {
+                    log(1, `<span class="log-ok">✅ Global feature schema</span> — <strong>${globalSchema.count}</strong> canonical features loaded. Uploads will be auto-harmonised.`);
+                } else {
+                    log(1, `<span style="color:var(--warn)">⚠️ No feature schema registered yet.</span> First upload will define the canonical schema.`, 'log-warn');
+                }
 
                 const pills = document.getElementById('info-row-1');
                 pills.style.display = 'flex';
@@ -1031,6 +1042,7 @@
                     <span class="info-pill">v${globalState.version}</span>
                     <span class="info-pill">${globalState.input_shape[0]} features</span>
                     <span class="info-pill">${globalState.num_classes} outputs</span>
+                    ${globalSchema.registered ? `<span class="info-pill" style="border-color:rgba(16,185,129,0.3);color:var(--success);">Schema ✓</span>` : `<span class="info-pill" style="border-color:rgba(245,158,11,0.3);color:var(--warn);">No Schema</span>`}
                 `;
 
                 setStatus(1, 'Done', 'ok');
@@ -1077,95 +1089,121 @@
             }
         }
 
-        async function parseCsvText(csvText, displayName) {
-            // ── Fetch canonical schema for validation ─────────────────────────
-            let canonicalCols = [];
-            try {
-                const schemaRes = await fetch('/api/schema');
-                if (schemaRes.ok) {
-                    const schema = await schemaRes.json();
-                    canonicalCols = schema.columns || [];
-                }
-            } catch (e) { /* schema fetch failing is non-fatal */ }
+        /* ── Feature Alignment Helpers ───────────────────────────────────── */
+        /**
+         * Harmonise parsed PapaParse rows to match canonical schema.
+         * Returns { alignedData, alignedFields, report }
+         *   report = { added: [...], dropped: [...], reordered: bool, ok: bool }
+         */
+        function alignToSchema(parsedData, parsedFields, schema) {
+            const canonical = schema.columns;
+            const uploadedSet = new Set(parsedFields);
+            const canonicalSet = new Set(canonical);
 
+            const added = canonical.filter(c => !uploadedSet.has(c));
+            // "extra" = columns NOT in the feature schema (e.g. price, SalePrice, charges)
+            // We KEEP these — they are candidate target columns the user needs to select.
+            const extra = parsedFields.filter(c => !canonicalSet.has(c));
+            const reordered = JSON.stringify(parsedFields.filter(c => canonicalSet.has(c))) !==
+                JSON.stringify(canonical.filter(c => uploadedSet.has(c)));
+
+            // Build mean lookup for padding missing schema features
+            const meansMap = {};
+            canonical.forEach((col, i) => { meansMap[col] = (schema.means && schema.means[i] != null) ? schema.means[i] : 0; });
+
+            // Column order: schema features first, then extra cols (price/target lives here)
+            const alignedFields = [...canonical, ...extra];
+
+            const alignedData = parsedData.map(row => {
+                const newRow = {};
+                // Schema features — pad missing with mean
+                canonical.forEach(col => {
+                    newRow[col] = (row[col] !== undefined && row[col] !== null) ? row[col] : meansMap[col];
+                });
+                // Extra cols (target column) — carry through unchanged
+                extra.forEach(col => { newRow[col] = row[col]; });
+                return newRow;
+            });
+
+            return {
+                alignedData,
+                alignedFields,   // schema features + extra target col(s)
+                report: {
+                    added,
+                    extra,   // non-schema cols kept for target selection
+                    reordered,
+                    ok: added.length === 0 && extra.length === 0 && !reordered
+                }
+            };
+        }
+
+        function renderAlignmentBanner(report, originalCount, canonicalCount, logId) {
+            if (report.ok) {
+                log(logId, `<span class="log-ok">✅ Schema match — ${canonicalCount} columns align perfectly with the global schema.</span>`);
+                return;
+            }
+            log(logId, `<span style="color:var(--accent2)">🔧 Feature Harmonization applied — dataset auto-aligned to global schema.</span>`);
+            if (report.added.length > 0) {
+                log(logId, `<span style="color:var(--accent)">➕ ${report.added.length} missing column(s) padded with schema mean: <em>${report.added.slice(0, 5).join(', ')}${report.added.length > 5 ? ` …+${report.added.length - 5} more` : ''}</em></span>`);
+            }
+            if (report.extra && report.extra.length > 0) {
+                log(logId, `<span style="color:var(--muted)">📌 ${report.extra.length} non-schema column(s) kept for target selection: <em>${report.extra.slice(0, 5).join(', ')}${report.extra.length > 5 ? ` …+${report.extra.length - 5} more` : ''}</em></span>`);
+            }
+            if (report.reordered) {
+                log(logId, `<span style="color:var(--muted)">↕️ Column order normalised to match schema.</span>`);
+            }
+            log(logId, `<span class="log-ok">✅ Alignment complete: ${originalCount} cols → ${canonicalCount} cols. Training can proceed.</span>`);
+        }
+
+        async function parseCsvText(csvText, displayName) {
             Papa.parse(csvText, {
                 header: true,
                 dynamicTyping: true,
                 skipEmptyLines: true,
                 complete: (r) => {
-                    const uploadedCols = r.meta.fields || [];
+                    let parsedData = r.data;
+                    let parsedFields = r.meta.fields || [];
+                    const originalColCount = parsedFields.length;
 
-                    // ── Schema Validation (only when a schema is already registered) ──
-                    if (canonicalCols.length > 0) {
-                        const missingCols = canonicalCols.filter(c => !uploadedCols.includes(c));
-                        const extraCols = uploadedCols.filter(c => !canonicalCols.includes(c));
-                        const countMatch = uploadedCols.length === canonicalCols.length;
-                        const namesMatch = missingCols.length === 0 && extraCols.length === 0;
-
-                        if (!countMatch || !namesMatch) {
-                            // ── Build detailed error ──────────────────────────────────
-                            let errLines = [
-                                `<span class="log-err">⛔ Schema mismatch — dataset rejected before processing.</span>`,
-                                `Expected <strong>${canonicalCols.length}</strong> columns, got <strong>${uploadedCols.length}</strong>.`,
-                            ];
-                            if (missingCols.length > 0) {
-                                errLines.push(`Missing columns (${missingCols.length}): <span style="color:var(--danger)">${missingCols.join(', ')}</span>`);
-                            }
-                            if (extraCols.length > 0) {
-                                errLines.push(`Unknown extra columns (${extraCols.length}): <span style="color:var(--warn)">${extraCols.join(', ')}</span>`);
-                            }
-                            errLines.push(`<span style="color:var(--muted)">Tip: Upload the file as <strong>Raw/Dirty CSV</strong> to auto-clean column structure.</span>`);
-
-                            errLines.forEach(l => log(2, l, 'log-err'));
-                            setStatus(2, 'Schema Error', 'fail');
-                            document.getElementById('cell-2').classList.add('error-cell');
-                            document.getElementById('drop-zone').innerHTML = `
-                                <div class="dz-icon">❌</div>
-                                <div class="dz-text"><strong>Schema mismatch</strong> — expected ${canonicalCols.length} cols, got ${uploadedCols.length}</div>
-                                <div class="dz-hint">Switch to Raw/Dirty mode to auto-fix column structure</div>
-                            `;
-                            document.getElementById('col-settings').style.display = 'none';
-                            return; // abort
-                        }
-
-                        log(2, `<span class="log-ok">✅ Schema validated — ${uploadedCols.length} columns match canonical schema.</span>`);
-                    } else {
-                        // No canonical columns yet — this upload registers the schema
-                        log(2, `No schema registered yet. This upload will set the canonical schema (${uploadedCols.length} columns).`, 'log-warn');
+                    // ── Feature Alignment ─────────────────────────────────────
+                    if (globalSchema && globalSchema.registered && globalSchema.columns.length > 0) {
+                        const { alignedData, alignedFields, report } = alignToSchema(parsedData, parsedFields, globalSchema);
+                        renderAlignmentBanner(report, originalColCount, alignedFields.length, 2);
+                        parsedData = alignedData;
+                        parsedFields = alignedFields;
+                        // Rebuild a PapaParse-compatible structure with aligned data
+                        r = { ...r, data: alignedData, meta: { ...r.meta, fields: alignedFields } };
+                    } else if (!globalSchema || !globalSchema.registered) {
+                        // First upload — this will register the schema after processing
+                        log(2, `<span style="color:var(--warn)">⚠️ No canonical schema registered. This dataset (${parsedFields.length} columns) will become the reference schema.</span>`, 'log-warn');
                     }
 
-                    // ── Passed validation — proceed ───────────────────────────
+                    // ── Store aligned data & populate target selector ─────────
                     document.getElementById('cell-2').classList.remove('error-cell');
                     csvRawSource = r;
                     const select = document.getElementById('target-col');
                     select.innerHTML = '';
-                    uploadedCols.forEach(f => {
+                    parsedFields.forEach(f => {
                         const opt = document.createElement('option');
                         opt.value = opt.textContent = f;
                         select.appendChild(opt);
                     });
+
                     // Smart default: guess target column by common regression names
                     const targetKeywords = ['price', 'saleprice', 'medv', 'charges', 'yield',
                         'salary', 'revenue', 'cost', 'value', 'target', 'label', 'output',
                         'hg/ha_yield', 'selling_price', 'resale_price'];
-                    const lowerCols = uploadedCols.map(c => c.toLowerCase());
+                    const lowerCols = parsedFields.map(c => c.toLowerCase());
                     const guessedIdx = lowerCols.findIndex(c => targetKeywords.some(k => c.includes(k)));
-                    select.selectedIndex = guessedIdx >= 0 ? guessedIdx : uploadedCols.length - 1;
+                    select.selectedIndex = guessedIdx >= 0 ? guessedIdx : parsedFields.length - 1;
 
                     document.getElementById('col-settings').style.display = 'block';
                     document.getElementById('drop-zone').innerHTML = `
                         <div class="dz-icon" style="opacity:1">✅</div>
-                        <div class="dz-text"><strong>${displayName}</strong> — ${r.data.length} rows · ${uploadedCols.length} columns</div>
+                        <div class="dz-text"><strong>${displayName}</strong> — ${parsedData.length} rows · ${parsedFields.length} columns</div>
                     `;
                     document.getElementById('drop-zone').classList.add('loaded');
-                    log(2, `CSV parsed: <span class="log-ok">${r.data.length} rows, ${uploadedCols.length} columns</span>`);
-
-                    // Register schema with server (no-op if already set)
-                    fetch('/api/register-schema', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ columns: uploadedCols })
-                    }).catch(() => { });
+                    log(2, `CSV loaded: <span class="log-ok">${parsedData.length} rows, ${parsedFields.length} features</span>`);
 
                     setStatus(2, 'Loaded', 'ok');
                 },
@@ -1191,21 +1229,67 @@
                 featureCols.map(c => { const v = parseFloat(row[c]); return isNaN(v) ? 0 : v; })
             );
 
-            // ── Compute per-column mean & std ───────────────────────────────
+            // ── Per-column mean & std ── use global schema stats when available ─
+            // Using global schema scaler statistics ensures preprocessing consistency
+            // across all federated clients, which is critical for weight compatibility.
             const nRows = rawMatrix.length;
-            const colMeans = featureCols.map((_, ci) => rawMatrix.reduce((s, r) => s + r[ci], 0) / nRows);
-            const colStds = featureCols.map((_, ci) => {
-                const mean = colMeans[ci];
-                return Math.sqrt(rawMatrix.reduce((s, r) => s + (r[ci] - mean) ** 2, 0) / nRows);
-            });
+            let colMeans, colStds;
 
-            // ── Drop zero-variance columns (constant / all-zero / bad date columns) ──
+            const useGlobalScaler = globalSchema && globalSchema.registered &&
+                globalSchema.means && globalSchema.means.length > 0 &&
+                // Only use global scaler if schema columns match our feature cols (modulo target)
+                globalSchema.columns.filter(c => c !== target).length === featureCols.length;
+
+            if (useGlobalScaler) {
+                // Map schema means/stds to the feature column order (excluding target)
+                const schemaFeatures = globalSchema.columns.filter(c => c !== target);
+                colMeans = featureCols.map(col => {
+                    const si = schemaFeatures.indexOf(col);
+                    const schemaMean = si >= 0 ? globalSchema.means[si] : null;
+                    // Fall back to local mean if schema doesn't have it
+                    if (schemaMean === null || schemaMean === undefined) {
+                        return rawMatrix.reduce((s, r) => s + r[featureCols.indexOf(col)], 0) / nRows;
+                    }
+                    return schemaMean;
+                });
+                colStds = featureCols.map(col => {
+                    const si = schemaFeatures.indexOf(col);
+                    const schemaStd = si >= 0 ? globalSchema.stds[si] : null;
+                    if (schemaStd === null || schemaStd === undefined || schemaStd < 1e-8) {
+                        const ci = featureCols.indexOf(col);
+                        const mean = colMeans[ci];
+                        return Math.sqrt(rawMatrix.reduce((s, r) => s + (r[ci] - mean) ** 2, 0) / nRows);
+                    }
+                    return schemaStd;
+                });
+                log(2, `<span class="log-ok">📐 Using global schema scaler statistics for preprocessing consistency.</span>`);
+            } else {
+                // Local compute (first upload / no schema yet)
+                colMeans = featureCols.map((_, ci) => rawMatrix.reduce((s, r) => s + r[ci], 0) / nRows);
+                colStds = featureCols.map((_, ci) => {
+                    const mean = colMeans[ci];
+                    return Math.sqrt(rawMatrix.reduce((s, r) => s + (r[ci] - mean) ** 2, 0) / nRows);
+                });
+                // Register local stats as global scaler (first-time only; server ignores if already set)
+                fetch('/api/register-schema', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ columns: featureCols, means: colMeans, stds: colStds })
+                }).then(res => res.json()).then(data => {
+                    if (data.features) {
+                        globalSchema = { registered: true, columns: data.features, means: colMeans, stds: colStds, count: data.count };
+                        log(2, `<span class="log-ok">📋 Schema registered — ${data.count} features + scaler stats saved.</span>`);
+                    }
+                }).catch(() => { });
+            }
+
+            // ── Drop zero-variance columns ────────────────────────────────────────
             const goodCols = featureCols.filter((_, ci) => colStds[ci] > 1e-6);
             const droppedCols = featureCols.filter((_, ci) => colStds[ci] <= 1e-6);
             if (droppedCols.length > 0)
                 log(2, `<span style="color:var(--warn)">Dropped ${droppedCols.length} zero-variance column(s): ${droppedCols.join(', ')}</span>`);
 
-            // ── Normalize (Z-score) and pad/truncate to model input dim ─────────
+            // ── Normalize (Z-score) and pad/truncate to model input dim ────────────
             const goodIndices = featureCols.map((_, i) => i).filter(i => colStds[i] > 1e-6);
             const X = rawMatrix.map(row => {
                 let feats = goodIndices.map(i => (row[i] - colMeans[i]) / (colStds[i] + 1e-8));
@@ -1213,27 +1297,26 @@
                 return feats.slice(0, inputDim);
             });
 
-            // ── Normalize target (Y) too so loss scale is manageable ───────────
+            // ── Normalize target (Y) ──────────────────────────────────────────────
             const yRaw = csvRawSource.data.map(row => { const v = parseFloat(row[target]); return isNaN(v) ? 0 : v; });
             const yMean = yRaw.reduce((s, v) => s + v, 0) / yRaw.length;
             const yStd = Math.sqrt(yRaw.reduce((s, v) => s + (v - yMean) ** 2, 0) / yRaw.length) + 1e-8;
             const y = yRaw.map(v => [(v - yMean) / yStd]);
 
             trainingSet = { X: tf.tensor2d(X), y: tf.tensor2d(y), yMean, yStd };
-            log(2, `<span class="log-ok">Preprocessed: ${X.length} rows × ${goodCols.length} features (normalized) → padded to ${inputDim}</span>. Target: <span style="color:var(--accent2)">${target}</span>`);
+            log(2, `<span class="log-ok">Preprocessed: ${X.length} rows × ${goodCols.length} features → padded to ${inputDim}</span>. Target: <span style="color:var(--accent2)">${target}</span>`);
             log(2, `Target stats: mean=<strong>${yMean.toFixed(0)}</strong> std=<strong>${yStd.toFixed(0)}</strong>`);
 
-
-            // ── Column Histogram ──────────────────────────────────────────────
+            // ── Column Histogram ──────────────────────────────────────────────────
             const displayCols = featureCols.slice(0, 12);
-            const means = displayCols.map(c => {
+            const histMeans = displayCols.map(c => {
                 const vals = csvRawSource.data.map(r => parseFloat(r[c]) || 0);
                 return vals.reduce((a, b) => a + b, 0) / vals.length;
             });
-            const stds = displayCols.map((c, i) => {
+            const histStds = displayCols.map((c, i) => {
                 const vals = csvRawSource.data.map(r => parseFloat(r[c]) || 0);
-                const mean = means[i];
-                return Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+                const m = histMeans[i];
+                return Math.sqrt(vals.reduce((a, b) => a + (b - m) ** 2, 0) / vals.length);
             });
 
             if (colHistChart) colHistChart.destroy();
@@ -1243,20 +1326,8 @@
                 data: {
                     labels: displayCols.map(c => c.length > 8 ? c.slice(0, 8) + '…' : c),
                     datasets: [
-                        {
-                            label: 'Mean',
-                            data: means,
-                            backgroundColor: 'rgba(99,102,241,0.6)',
-                            borderColor: '#6366F1',
-                            borderWidth: 1,
-                        },
-                        {
-                            label: 'Std Dev',
-                            data: stds,
-                            backgroundColor: 'rgba(34,211,238,0.35)',
-                            borderColor: '#22D3EE',
-                            borderWidth: 1,
-                        }
+                        { label: 'Mean', data: histMeans, backgroundColor: 'rgba(99,102,241,0.6)', borderColor: '#6366F1', borderWidth: 1 },
+                        { label: 'Std Dev', data: histStds, backgroundColor: 'rgba(34,211,238,0.35)', borderColor: '#22D3EE', borderWidth: 1 }
                     ]
                 },
                 options: {
@@ -1272,9 +1343,9 @@
                 }
             });
 
-            // ── Data Preview Table ────────────────────────────────────────────
+            // ── Data Preview Table ──────────────────────────────────────────────
             const previewRows = csvRawSource.data.slice(0, 5);
-            const previewCols = allCols.slice(0, 8); // show at most 8 cols
+            const previewCols = allCols.slice(0, 8);
             let tableHTML = '<table><thead><tr>';
             previewCols.forEach(c => tableHTML += `<th>${c}</th>`);
             tableHTML += '</tr></thead><tbody>';
@@ -1285,7 +1356,6 @@
             });
             tableHTML += '</tbody></table>';
             document.getElementById('dataTableWrap').innerHTML = tableHTML;
-
             document.getElementById('data-preview').style.display = 'block';
 
             // Info pills
@@ -1296,7 +1366,6 @@
                 <span class="info-pill">Target: ${target}</span>
                 <span class="info-pill">Model dim: ${inputDim}</span>
             `;
-
 
             document.getElementById('cell-2').classList.add('done-cell');
             advanceRail(3);

@@ -5,7 +5,9 @@ import asyncio
 import io
 import csv
 import json
+import os
 from main.federated_engine import get_latest_model, process_update
+from main import feature_schema as fs
 from asgiref.sync import sync_to_async
 
 router = APIRouter()
@@ -49,37 +51,57 @@ async def submit_weight_update(submission: UpdateSubmission):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-_CANONICAL_COLUMNS: List[str] = []
-
-def _get_canonical_columns() -> List[str]:
-    global _CANONICAL_COLUMNS
-    if _CANONICAL_COLUMNS:
-        return _CANONICAL_COLUMNS
-    return _CANONICAL_COLUMNS
-
-def _set_canonical_columns(cols: List[str]) -> None:
-    global _CANONICAL_COLUMNS
-    if not _CANONICAL_COLUMNS:
-        _CANONICAL_COLUMNS = [c for c in cols]
-
+# ── Schema helpers ──────────────────────────────────────────────────────────
 
 @router.get("/schema")
 async def get_schema():
-    cols = _get_canonical_columns()
-    return {"columns": cols, "count": len(cols)}
+    """Return canonical feature schema (names + scaler stats)."""
+    schema = fs.get_schema()
+    if schema is None:
+        return {"columns": [], "means": [], "stds": [], "count": 0, "registered": False}
+    return {
+        "columns": schema["features"],
+        "means":   schema["means"],
+        "stds":    schema["stds"],
+        "count":   len(schema["features"]),
+        "registered": True,
+        "registered_at": schema.get("registered_at"),
+    }
 
 
-def _clean_csv_data(raw_bytes: bytes, canonical_cols: List[str]) -> str:
-    """Clean a CSV in-place: convert non-numeric values to 0, fill blanks with 0.
-    Uses the file's OWN columns — canonical schema is only for weight submission."""
-    content = raw_bytes.decode("utf-8", errors="replace")
-    reader = csv.DictReader(io.StringIO(content))
-    rows = list(reader)
-    if not rows:
-        return content
+@router.post("/register-schema")
+async def register_schema(body: Dict[str, Any]):
+    """
+    Register the canonical feature schema.
+    Body: {columns: [...], means: [...], stds: [...], overwrite: false}
+    If a schema already exists and overwrite=false, the existing schema is returned.
+    """
+    cols      = body.get("columns", [])
+    means     = body.get("means")     # optional
+    stds      = body.get("stds")      # optional
+    overwrite = body.get("overwrite", False)
+    if not cols:
+        raise HTTPException(status_code=400, detail="'columns' list is required")
+    schema = fs.set_schema(cols, means=means, stds=stds, overwrite=overwrite)
+    return {
+        "status":        "registered" if overwrite or means else "ok",
+        "features":      schema["features"],
+        "count":         len(schema["features"]),
+        "registered_at": schema.get("registered_at"),
+    }
 
-    file_cols = list(reader.fieldnames or [])
 
+@router.delete("/schema")
+async def delete_schema():
+    """Admin: delete the persisted canonical schema (for resets / testing)."""
+    fs.reset_schema()
+    return {"status": "deleted"}
+
+
+# ── CSV helpers ──────────────────────────────────────────────────────────────
+
+def _clean_csv_rows(rows: list[dict], file_cols: list[str]) -> list[dict]:
+    """Coerce all values to float, fill blanks with 0, drop all-zero rows."""
     out_rows = []
     for row in rows:
         cleaned_row = {}
@@ -91,26 +113,57 @@ def _clean_csv_data(raw_bytes: bytes, canonical_cols: List[str]) -> str:
             except (ValueError, AttributeError):
                 cleaned_row[col] = 0.0
         out_rows.append(cleaned_row)
+    return [r for r in out_rows if any(v != 0.0 for v in r.values())]
 
-    # Drop rows that are entirely empty
-    out_rows = [r for r in out_rows if any(v != 0.0 for v in r.values())]
 
+def _rows_to_csv(rows: list[dict], fieldnames: list[str]) -> str:
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=file_cols)
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
-    writer.writerows(out_rows)
+    writer.writerows(rows)
     return output.getvalue()
 
 
 @router.post("/clean-csv")
 async def clean_csv(file: UploadFile = File(...)):
+    """Clean a raw CSV (coerce types, drop empties) then optionally harmonise to global schema."""
     try:
         raw = await file.read()
-        canonical = _get_canonical_columns()
-        cleaned = _clean_csv_data(raw, canonical)
+        content = raw.decode("utf-8", errors="replace")
+        reader = csv.DictReader(io.StringIO(content))
+        rows = list(reader)
+        file_cols = list(reader.fieldnames or [])
+
+        # Step 1: clean values
+        cleaned_rows = _clean_csv_rows(rows, file_cols)
+
+        # Step 2: harmonise schema features (if registered)
+        schema = fs.get_schema()
+        if schema:
+            aligned_rows, report = fs.align_features(cleaned_rows, schema)
+            schema_cols = schema["features"]
+            canonical_set = set(schema_cols)
+            # Keep extra cols (e.g. price / target) that are not schema features
+            extra_cols = [c for c in file_cols if c not in canonical_set]
+            final_cols = schema_cols + extra_cols
+
+            # Re-attach extra col values to the aligned rows
+            if extra_cols:
+                orig_map = {i: cleaned_rows[i] for i in range(len(cleaned_rows))}
+                for i, row in enumerate(aligned_rows):
+                    src = orig_map.get(i, {})
+                    for col in extra_cols:
+                        row[col] = src.get(col, "")
+
+            print(f"[align] added={report['added']} dropped={len(report['dropped'])} reordered={report['reordered']} extra={extra_cols}")
+        else:
+            aligned_rows = cleaned_rows
+            final_cols   = file_cols
+
+        cleaned_csv = _rows_to_csv(aligned_rows, final_cols)
         from fastapi.responses import Response
         return Response(
-            content=cleaned,
+            content=cleaned_csv,
             media_type="text/csv",
             headers={"Content-Disposition": f'attachment; filename="cleaned_{file.filename}"'},
         )
@@ -118,12 +171,44 @@ async def clean_csv(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"CSV cleaning failed: {str(e)}")
 
 
-@router.post("/register-schema")
-async def register_schema(body: Dict[str, Any]):
-    cols = body.get("columns", [])
-    if cols:
-        _set_canonical_columns(cols)
-    return {"status": "ok", "canonical_columns": _get_canonical_columns()}
+@router.post("/align-csv")
+async def align_csv(file: UploadFile = File(...)):
+    """
+    Harmonise an uploaded CSV to the canonical feature schema.
+    Returns a JSON report + the aligned CSV as a string.
+    If no schema is registered, the file is returned unchanged.
+    """
+    try:
+        raw = await file.read()
+        content = raw.decode("utf-8", errors="replace")
+        reader = csv.DictReader(io.StringIO(content))
+        rows = list(reader)
+        file_cols = list(reader.fieldnames or [])
+
+        schema = fs.get_schema()
+        if schema is None:
+            return {
+                "schema_registered": False,
+                "report": {"added": [], "dropped": [], "reordered": False, "ok": True},
+                "rows": len(rows),
+                "columns": file_cols,
+                "csv": content,
+            }
+
+        # Clean then align
+        cleaned = _clean_csv_rows(rows, file_cols)
+        aligned, report = fs.align_features(cleaned, schema)
+        csv_out = _rows_to_csv(aligned, schema["features"])
+
+        return {
+            "schema_registered": True,
+            "report":  report,
+            "rows":    len(aligned),
+            "columns": schema["features"],
+            "csv":     csv_out,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Alignment failed: {str(e)}")
 
 
 @router.delete("/model/latest")
@@ -133,39 +218,34 @@ async def delete_latest_model():
         from main.models import GlobalModel
 
         def _fetch_top_two():
-            versions = list(GlobalModel.objects.all().order_by('-version')[:2])
-            return versions
+            return list(GlobalModel.objects.all().order_by('-version')[:2])
 
         versions = await sync_to_async(_fetch_top_two)()
 
         if not versions:
             raise HTTPException(status_code=404, detail="No model versions exist")
 
-        latest = versions[0]
+        latest   = versions[0]
         previous = versions[1] if len(versions) > 1 else None
 
-        # Delete weight file from disk
         if os.path.exists(latest.weights_path):
             os.remove(latest.weights_path)
 
-        # Delete DB record
         await sync_to_async(latest.delete)()
 
-        # Clear in-memory buffer so next submissions go against the reverted model
         from main.federated_engine import _update_buffer
         _update_buffer.clear()
 
         print(f"[Engine] Deleted v{latest.version}. Active version: {previous.version if previous else 'none'}")
         return {
-            "status": "deleted",
+            "status":          "deleted",
             "deleted_version": latest.version,
-            "active_version": previous.version if previous else None,
+            "active_version":  previous.version if previous else None,
         }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 
 @router.get("/versions")
@@ -185,11 +265,11 @@ async def list_versions():
         result = []
         for r in rows:
             result.append({
-                "version": r["version"],
-                "weights_path": r["weights_path"],
-                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
-                "best_rmse": round(r["best_rmse"], 4) if r["best_rmse"] is not None else None,
-                "best_mae": round(r["best_mae"], 4) if r["best_mae"] is not None else None,
+                "version":        r["version"],
+                "weights_path":   r["weights_path"],
+                "created_at":     r["created_at"].isoformat() if r["created_at"] else None,
+                "best_rmse":      round(r["best_rmse"], 4) if r["best_rmse"] is not None else None,
+                "best_mae":       round(r["best_mae"],  4) if r["best_mae"]  is not None else None,
                 "accepted_count": r["accepted_count"],
                 "rejected_count": r["rejected_count"],
             })
@@ -236,9 +316,9 @@ async def rollback_to_version(target_version: int):
 
         print(f"[Engine] Rollback: v{target_version} → new v{new_version}")
         return {
-            "status": "rolled_back",
+            "status":       "rolled_back",
             "from_version": target_version,
-            "new_version": new_version,
+            "new_version":  new_version,
         }
     except HTTPException:
         raise
@@ -271,22 +351,22 @@ async def metrics_history(client_id: str = Query(...), limit: int = Query(10)):
         history = []
         for log in logs:
             history.append({
-                "id": log.id,
-                "accepted": log.accepted,
-                "norm": round(log.norm, 4),
-                "local_rmse": round(log.local_rmse, 4) if log.local_rmse is not None else None,
-                "local_mae": round(log.local_mae, 4) if log.local_mae is not None else None,
+                "id":           log.id,
+                "accepted":     log.accepted,
+                "norm":         round(log.norm, 4),
+                "local_rmse":   round(log.local_rmse, 4) if log.local_rmse is not None else None,
+                "local_mae":    round(log.local_mae,  4) if log.local_mae  is not None else None,
                 "base_version": log.base_version,
-                "staleness": log.staleness,
-                "timestamp": log.timestamp.isoformat(),
+                "staleness":    log.staleness,
+                "timestamp":    log.timestamp.isoformat(),
             })
 
         return {
-            "client_id": client_id,
-            "global_version": latest_model.version if latest_model else 0,
+            "client_id":       client_id,
+            "global_version":  latest_model.version if latest_model else 0,
             "global_best_rmse": round(latest_model.best_rmse, 4) if latest_model and latest_model.best_rmse is not None else None,
-            "global_best_mae": round(latest_model.best_mae, 4) if latest_model and latest_model.best_mae is not None else None,
-            "history": history,
+            "global_best_mae":  round(latest_model.best_mae,  4) if latest_model and latest_model.best_mae  is not None else None,
+            "history":         history,
         }
 
     except HTTPException:

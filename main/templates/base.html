@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Fedora{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=DM+Mono:wght@400;500&family=Fraunces:wght@700;900&display=swap"
+        rel="stylesheet" />
+
+    <style>
+        /* ── RESET ── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── STARFIELD ── */
+        #space-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: .55;
+        }
+
+        /* ── VIGNETTE ── */
+        #space-vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: radial-gradient(ellipse 85% 78% at 50% 50%, transparent 28%, rgba(0, 0, 0, .88) 100%);
+        }
+
+        /* ── GLASSMORPHIC NAVBAR ── */
+        .fedora-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            background: rgba(0, 0, 0, 0.30);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            opacity: 0;
+            transform: translateY(-56px);
+            animation: navIn 0.9s cubic-bezier(0.69, 0, 0.05, 0.98) 0.15s forwards;
+        }
+
+        @keyframes navIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fedora-nav-logo {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            color: #fff;
+            text-decoration: none;
+            transition: opacity .2s;
+        }
+
+        .fedora-nav-logo:hover {
+            opacity: .72;
+        }
+
+        .fedora-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .fedora-nav-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all .22s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .fedora-nav-link.ghost {
+            border: 1px solid rgba(255, 255, 255, .16);
+            background: transparent;
+            color: rgba(255, 255, 255, .72);
+        }
+
+        .fedora-nav-link.ghost:hover {
+            border-color: rgba(255, 255, 255, .48);
+            color: #fff;
+            background: rgba(255, 255, 255, .05);
+        }
+
+        .fedora-nav-link.filled {
+            border: 1px solid rgba(255, 255, 255, .2);
+            background: rgba(255, 255, 255, .1);
+            color: #fff;
+            font-weight: 600;
+            backdrop-filter: blur(8px);
+        }
+
+        .fedora-nav-link.filled:hover {
+            border-color: rgba(255, 255, 255, .5);
+            background: rgba(255, 255, 255, .18);
+        }
+
+        .fedora-nav-link.danger {
+            border: 1px solid rgba(255, 77, 77, .25);
+            background: rgba(255, 77, 77, .07);
+            color: #ff7070;
+            font-weight: 600;
+        }
+
+        .fedora-nav-link.danger:hover {
+            border-color: rgba(255, 77, 77, .6);
+            background: rgba(255, 77, 77, .14);
+            color: #ff9090;
+        }
+
+        .fedora-nav-chip {
+            font-size: 10px;
+            font-family: 'DM Mono', monospace;
+            padding: 4px 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .1);
+            color: rgba(255, 255, 255, .55);
+            letter-spacing: .05em;
+        }
+
+        /* ── PAGE BODY (padded under sticky nav) ── */
+        .fedora-body {
+            position: relative;
+            z-index: 10;
+            padding-top: 56px;
+            min-height: 100vh;
+        }
+
+        /* ── Shared utility ── */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+
+    <!-- SPACE STARFIELD -->
+    <canvas id="space-canvas" aria-hidden="true"></canvas>
+    <div id="space-vignette" aria-hidden="true"></div>
+
+    <!-- NAVBAR -->
+    <nav class="fedora-nav" aria-label="Main navigation">
+        <a href="{% if user.is_authenticated %}/{% else %}/login/{% endif %}" class="fedora-nav-logo">Fedora</a>
+        <div class="fedora-nav-actions">
+            {% if user.is_authenticated %}
+            {% if page == 'dashboard' %}
+            <a href="/train/" class="fedora-nav-link ghost">Notebook</a>
+            {% elif page == 'train' %}
+            <a href="/hub/" class="fedora-nav-link ghost">{% if is_host %}Hub{% else %}Portal{% endif %}</a>
+            {% else %}
+            <a href="/hub/" class="fedora-nav-link ghost">{% if is_host %}Hub{% else %}Portal{% endif %}</a>
+            <a href="/train/" class="fedora-nav-link ghost">Notebook</a>
+            {% endif %}
+            {% if user.username %}
+            <span class="fedora-nav-chip">{{ user.username }}</span>
+            {% endif %}
+            <a href="/logout/" class="fedora-nav-link danger">Logout</a>
+            {% else %}
+            <a href="/login/" class="fedora-nav-link ghost">Log in</a>
+            <a href="/signup/" class="fedora-nav-link filled">Sign up</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- PAGE CONTENT -->
+    <div class="fedora-body">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- STARFIELD SCRIPT (shared for all pages) -->
+    <script>
+        (function () {
+            'use strict';
+            const cvs = document.getElementById('space-canvas');
+            if (!cvs) return;
+            const ctx = cvs.getContext('2d');
+            let W, H, stars = [], mx = 0, my = 0, raf;
+            const N = 320;
+
+            function mk() {
+                return {
+                    x: Math.random(), y: Math.random(),
+                    r: Math.random() * 1.35 + .12,
+                    a: Math.random() * .55 + .08,
+                    da: (Math.random() * .004 + .001) * (Math.random() < .5 ? 1 : -1),
+                    spd: Math.random() * .025 + .003
+                };
+            }
+
+            function resize() { W = cvs.width = innerWidth; H = cvs.height = innerHeight; }
+
+            let prev = 0;
+            function draw(ts) {
+                const dt = Math.min((ts - prev) / 1000, .08); prev = ts;
+                ctx.clearRect(0, 0, W, H);
+                const nx = mx / W - .5, ny = my / H - .5;
+                for (const s of stars) {
+                    s.y += s.spd * dt;
+                    if (s.y > 1.02) { s.y = -.02; s.x = Math.random(); }
+                    s.a += s.da;
+                    if (s.a > .8 || s.a < .04) s.da *= -1;
+                    ctx.beginPath();
+                    ctx.arc(
+                        (s.x - nx * s.r * .006) * W,
+                        (s.y - ny * s.r * .006) * H,
+                        s.r, 0, 6.2832
+                    );
+                    ctx.fillStyle = 'rgba(255,255,255,' + s.a + ')';
+                    ctx.fill();
+                }
+                raf = requestAnimationFrame(draw);
+            }
+
+            addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; }, { passive: true });
+            addEventListener('resize', () => { cancelAnimationFrame(raf); resize(); raf = requestAnimationFrame(draw); }, { passive: true });
+
+            stars = Array.from({ length: N }, mk);
+            resize();
+            raf = requestAnimationFrame(draw);
+        })();
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

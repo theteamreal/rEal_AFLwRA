@@ -1,595 +1,739 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fedora Hub — Administrative Control</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@700;900&display=swap"
-        rel="stylesheet">
-    <style>
-        :root {
-            --bg-deep: #05070A;
-            --bg-indigo: #0A0E17;
-            --fedora-blue: #4A90E2;
-            --fedora-cyan: #50E3C2;
-            --fedora-danger: #FF4D4D;
-            --glass-bg: rgba(20, 26, 38, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --text-primary: #E6EBF5;
-            --text-secondary: #8B9BAA;
-            --mono: 'DM Mono', monospace;
-            --serif: 'Fraunces', serif;
+{% block title %}Fedora — Participant Hub{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@700;900&display=swap"
+    rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    :root {
+        --accent: rgba(255, 255, 255, 0.7);
+        --accent2: rgba(255, 255, 255, 0.5);
+        --danger: rgba(255, 100, 100, 0.7);
+        --gold: rgba(255, 255, 255, 0.6);
+        --glass: rgba(255, 255, 255, 0.04);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --text: #E2E8F0;
+        --muted: rgba(255, 255, 255, 0.35);
+        --mono: 'DM Mono', monospace;
+        --sans: 'Inter', sans-serif;
+        --serif: 'Fraunces', serif;
+    }
+
+    body {
+        overflow-y: auto;
+    }
+
+    .page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 40px 80px;
+        font-family: var(--mono);
+    }
+
+    /* ── Hero ── */
+    .hero {
+        margin-bottom: 40px;
+    }
+
+    .hero-label {
+        font-size: 10px;
+        font-family: var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: var(--accent);
+        margin-bottom: 12px;
+    }
+
+    .hero h1 {
+        font-family: var(--serif);
+        font-size: 48px;
+        font-weight: 900;
+        letter-spacing: -2px;
+        line-height: 1.05;
+        margin-bottom: 12px;
+    }
+
+    .hero h1 em {
+        font-style: normal;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .hero-sub {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    /* ── Trust Gauge ── */
+    .trust-row {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .trust-card {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(12px);
+    }
+
+    .trust-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), transparent);
+        pointer-events: none;
+    }
+
+    .gauge-wrap {
+        position: relative;
+        width: 140px;
+        height: 80px;
+        margin-bottom: 16px;
+    }
+
+    .gauge-canvas {
+        width: 140px;
+        height: 80px;
+    }
+
+    .gauge-value {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: var(--serif);
+        font-size: 28px;
+        font-weight: 900;
+        color: white;
+        line-height: 1;
+    }
+
+    .trust-label {
+        font-size: 10px;
+        font-family: var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--muted);
+        margin-bottom: 4px;
+    }
+
+    .trust-score-text {
+        font-size: 13px;
+        color: var(--text);
+    }
+
+    /* ── Stats Cards ── */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    .stat-card {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 24px;
+        transition: all 0.25s;
+        backdrop-filter: blur(12px);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .stat-card .icon {
+        font-size: 20px;
+        margin-bottom: 14px;
+    }
+
+    .stat-card .label {
+        font-size: 10px;
+        font-family: var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--muted);
+        margin-bottom: 8px;
+    }
+
+    .stat-card .value {
+        font-family: var(--serif);
+        font-size: 36px;
+        font-weight: 900;
+        color: white;
+        line-height: 1;
+    }
+
+    .stat-card .trend {
+        font-size: 11px;
+        margin-top: 8px;
+        color: var(--muted);
+    }
+
+    .stat-card.accepted {
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .stat-card.accepted .value {
+        color: var(--accent2);
+    }
+
+    .stat-card.rejected {
+        border-color: rgba(239, 68, 68, 0.15);
+    }
+
+    .stat-card.rejected .value {
+        color: var(--danger);
+    }
+
+    /* ── Section ── */
+    .section {
+        margin-top: 40px;
+    }
+
+    .section-head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .section-head h2 {
+        font-size: 11px;
+        font-family: var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: var(--accent2);
+    }
+
+    .section-head .sub {
+        font-size: 11px;
+        color: var(--muted);
+    }
+
+    .chart-card {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        padding: 24px;
+        backdrop-filter: blur(12px);
+    }
+
+    .chart-wrap {
+        height: 220px;
+        position: relative;
+    }
+
+    .metrics-legend {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 16px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--muted);
+    }
+
+    .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    /* ── Table ── */
+    .table-card {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        overflow: hidden;
+        backdrop-filter: blur(12px);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        text-align: left;
+        padding: 14px 20px;
+        font-size: 10px;
+        font-family: var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    td {
+        padding: 16px 20px;
+        font-size: 13px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        transition: background 0.15s;
+        color: var(--text);
+    }
+
+    tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 9px;
+        font-family: var(--mono);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .badge-ok {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--accent2);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-no {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .mono-val {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    /* ── CTA ── */
+    .cta-strip {
+        margin-top: 40px;
+        padding: 32px 40px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.05));
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        backdrop-filter: blur(12px);
+    }
+
+    .cta-strip h3 {
+        font-family: var(--serif);
+        font-size: 22px;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .cta-strip p {
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .cta-btn {
+        flex-shrink: 0;
+        display: inline-block;
+        padding: 14px 32px;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-weight: 500;
+        font-size: 12px;
+        font-family: var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: all 0.25s;
+        white-space: nowrap;
+    }
+
+    .cta-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.25);
+        transform: translateY(-1px);
+    }
+
+    /* ── Node Status ── */
+    .node-strip {
+        margin-top: 24px;
+        display: flex;
+        gap: 16px;
+    }
+
+    .node-pill {
+        flex: 1;
+        padding: 16px 20px;
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        text-align: center;
+        backdrop-filter: blur(12px);
+    }
+
+    .node-pill .nl {
+        font-size: 9px;
+        font-family: var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--muted);
+        margin-bottom: 6px;
+    }
+
+    .node-pill .nv {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        font-family: var(--mono);
+    }
+
+    .online-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent2);
+        box-shadow: 0 0 6px var(--accent2);
+        margin-right: 5px;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        50% {
+            opacity: 0.6;
+            transform: scale(0.85);
+        }
+    }
+
+    .online-dot {
+        animation: pulse 2s infinite;
+    }
+
+    .empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--muted);
+    }
+
+    .empty .icon {
+        font-size: 36px;
+        margin-bottom: 12px;
+        opacity: 0.3;
+    }
+
+    .empty p {
+        font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+        .trust-row {
+            grid-template-columns: 1fr;
         }
 
-        body {
-            background: var(--bg-deep);
-            background-image:
-                radial-gradient(at 10% 20%, rgba(74, 144, 226, 0.05) 0px, transparent 50%),
-                radial-gradient(at 90% 80%, rgba(80, 227, 194, 0.03) 0px, transparent 50%);
-            color: var(--text-primary);
-            font-family: var(--mono);
-            min-height: 100vh;
-            overflow-x: hidden;
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
 
-        .topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px 40px;
-            background: rgba(5, 7, 10, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--glass-border);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+        .cta-strip {
+            flex-direction: column;
+        }
+    }
+
+    @media (max-width: 580px) {
+        .page {
+            padding: 24px 16px 60px;
         }
 
-        .brand {
-            font-family: var(--serif);
-            font-size: 24px;
-            font-weight: 900;
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .node-strip {
+            flex-wrap: wrap;
         }
+    }
+</style>
+{% endblock %}
 
-        .brand .logo {
-            width: 12px;
-            height: 12px;
-            background: var(--fedora-blue);
-            border-radius: 50%;
-            box-shadow: 0 0 15px var(--fedora-blue);
-        }
-
-        .brand span {
-            color: var(--fedora-blue);
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 12px;
-        }
-
-        .nav-link {
-            padding: 8px 20px;
-            border: 1px solid var(--glass-border);
-            background: rgba(255, 255, 255, 0.02);
-            color: var(--text-secondary);
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            text-decoration: none;
-            border-radius: 4px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: white;
-            background: rgba(74, 144, 226, 0.15);
-            border-color: var(--fedora-blue);
-            box-shadow: 0 4px 20px rgba(74, 144, 226, 0.1);
-            transform: translateY(-1px);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 60px 40px;
-            display: grid;
-            grid-template-columns: 1fr 360px;
-            gap: 40px;
-        }
-
-        h1 {
-            font-family: var(--serif);
-            font-size: 56px;
-            font-weight: 900;
-            letter-spacing: -3px;
-            line-height: 1;
-            margin-bottom: 15px;
-        }
-
-        h1 span {
-            background: linear-gradient(90deg, var(--fedora-blue), var(--fedora-cyan));
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .lead {
-            color: var(--text-secondary);
-            font-size: 14px;
-            max-width: 700px;
-            margin-bottom: 50px;
-            line-height: 1.6;
-        }
-
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            margin-bottom: 50px;
-        }
-
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 32px;
-            transition: all 0.3s ease;
-        }
-
-        .glass-card:hover {
-            border-color: rgba(74, 144, 226, 0.3);
-            background: rgba(20, 26, 38, 0.85);
-            transform: translateY(-4px);
-        }
-
-        .stat-label {
-            font-size: 10px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 12px;
-        }
-
-        .stat-value {
-            font-size: 42px;
-            font-weight: 900;
-            font-family: var(--serif);
-            color: white;
-            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .section-header h2 {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            color: var(--fedora-blue);
-        }
-
-        .activity-shell {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            overflow: hidden;
-            backdrop-filter: blur(8px);
-        }
-
-        .activity-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .activity-table th {
-            text-align: left;
-            padding: 16px 24px;
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            background: rgba(255, 255, 255, 0.02);
-            font-weight: 500;
-        }
-
-        .activity-table td {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--glass-border);
-            font-size: 13px;
-            transition: background 0.2s;
-        }
-
-        .activity-table tr:hover td {
-            background: rgba(74, 144, 226, 0.03);
-        }
-
-        .participant-id {
-            color: var(--fedora-blue);
-            font-weight: 500;
-        }
-
-        .badge {
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .badge-accepted {
-            background: rgba(80, 227, 194, 0.1);
-            color: var(--fedora-cyan);
-            border: 1px solid rgba(80, 227, 194, 0.2);
-        }
-
-        .badge-rejected {
-            background: rgba(255, 77, 77, 0.1);
-            color: var(--fedora-danger);
-            border: 1px solid rgba(255, 77, 77, 0.2);
-        }
-
-        .norm-val {
-            font-variant-numeric: tabular-nums;
-            color: var(--text-secondary);
-        }
-
-        .client-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 0;
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .client-row:last-child {
-            border-bottom: none;
-        }
-
-        .client-name {
-            font-size: 13px;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-
-        .client-meta {
-            font-size: 10px;
-            color: var(--text-secondary);
-        }
-
-        .client-score {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--fedora-cyan);
-            font-family: var(--serif);
-        }
-
-        .system-pill {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 11px;
-            margin-bottom: 15px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 6px;
-        }
-
-        .rollback-btn {
-            padding: 4px 10px;
-            border: 1px solid rgba(74, 144, 226, 0.3);
-            background: rgba(74, 144, 226, 0.06);
-            color: var(--fedora-blue);
-            border-radius: 4px;
-            font-family: var(--mono);
-            font-size: 9px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .rollback-btn:hover {
-            background: rgba(74, 144, 226, 0.18);
-            border-color: var(--fedora-blue);
-        }
-
-        .rollback-btn:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
-
-        .version-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--glass-border);
-            gap: 8px;
-        }
-
-        .version-row:last-child {
-            border-bottom: none;
-        }
-
-        .version-tag {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--fedora-cyan);
-            font-family: var(--serif);
-            min-width: 36px;
-        }
-
-        .version-meta {
-            font-size: 10px;
-            color: var(--text-secondary);
-            flex: 1;
-            line-height: 1.5;
-        }
-
-        @media (max-width: 1100px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <nav class="topbar">
-        <div class="brand">
-            <div class="logo"></div>
-            Fe<span>dora</span>
-        </div>
-        <div class="nav-links">
-            <a href="/" class="nav-link active">Hub</a>
-            <a href="/train/" class="nav-link">Notebook</a>
-            <a href="/logout/" class="nav-link"
-                style="border-color: rgba(255, 77, 77, 0.2); color: var(--fedora-danger);">Logout</a>
-        </div>
-    </nav>
-
-    <div class="container">
-        <main>
-            <h1>Intelligence <span>Cluster</span></h1>
-            <p class="lead">
-                Welcome back, Administrator <span style="color: var(--fedora-blue); font-weight: 700;">{{ user.username
-                    }}</span>.
-                Unified Asynchronous Federated Control Center monitoring real-time model evolution.
-                <span class="badge badge-accepted" style="margin-left: 10px; font-size: 8px;">Host Administrative
-                    View</span>
-            </p>
-
-            <div class="stats-row">
-                <div class="glass-card">
-                    <div class="stat-label">Model State</div>
-                    <div class="stat-value">v{{ latest_model.version|default:0 }}</div>
-                </div>
-                <div class="glass-card">
-                    <div class="stat-label">Total Contributions</div>
-                    <div class="stat-value">{{ recent_updates.count }}</div>
-                </div>
-                <div class="glass-card">
-                    <div class="stat-label">Active Participants</div>
-                    <div class="stat-value">{{ clients.count }}</div>
-                </div>
-            </div>
-
-            <div class="section-header">
-                <h2>Live Event Stream</h2>
-            </div>
-
-            <div class="activity-shell">
-                <table class="activity-table">
-                    <thead>
-                        <tr>
-                            <th>Participant</th>
-                            <th>Outcome</th>
-                            <th>L2 Norm</th>
-                            <th>Sync Time</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for update in recent_updates %}
-                        <tr>
-                            <td><span class="participant-id">{{ update.client.client_id }}</span></td>
-                            <td>
-                                <span
-                                    class="badge {% if update.accepted %}badge-accepted{% else %}badge-rejected{% endif %}">
-                                    {% if update.accepted %}Accepted{% else %}Rejected{% endif %}
-                                </span>
-                            </td>
-                            <td><span class="norm-val">{{ update.norm|stringformat:".2f" }}</span></td>
-                            <td style="color:var(--text-secondary)">{{ update.timestamp|timesince }} ago</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" style="text-align:center; padding: 60px; color: var(--text-secondary);">
-                                <div style="font-size: 32px; margin-bottom: 20px; opacity: 0.2;">📡</div>
-                                Listening for participating nodes...
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </main>
-
-        <aside>
-            <div class="section-header">
-                <h2>Trust Index</h2>
-            </div>
-            <div class="glass-card" style="padding: 24px;">
-                {% for client in clients %}
-                <div class="client-row">
-                    <div>
-                        <div class="client-name">{{ client.client_id|truncatechars:18 }}</div>
-                        <div class="client-meta">Last sync: {{ client.last_update|timesince }} ago</div>
-                    </div>
-                    <div class="client-score">{{ client.trust_score|stringformat:".2f" }}</div>
-                </div>
-                {% empty %}
-                <div style="text-align:center; padding: 20px; font-size: 11px; color: var(--text-secondary);">No
-                    participants registered.</div>
-                {% endfor %}
-            </div>
-
-            <div class="section-header" style="margin-top: 50px;">
-                <h2>Version History</h2>
-                <div style="display:flex;gap:6px;">
-                    <button class="rollback-btn" onclick="deleteLatest()" id="btn-delete-latest"
-                        style="border-color:rgba(255,77,77,0.3);background:rgba(255,77,77,0.06);color:var(--fedora-danger);">
-                        ⌫ Delete Latest
-                    </button>
-                    <button class="rollback-btn" onclick="loadVersions()" style="font-size:9px;">↻ Refresh</button>
-                </div>
-            </div>
-            <div class="glass-card" style="padding: 24px;" id="version-history-panel">
-                <div style="text-align:center; padding:16px; font-size:11px; color:var(--text-secondary);">Loading...
-                </div>
-            </div>
-
-            <div class="section-header" style="margin-top: 50px;">
-                <h2>Host Status</h2>
-            </div>
-            <div class="glass-card"
-                style="background: rgba(74, 144, 226, 0.05); border-color: rgba(74, 144, 226, 0.15); padding: 24px;">
-                <div class="system-pill">
-                    <span style="color: var(--text-secondary);">API Node</span>
-                    <span style="color: var(--fedora-blue); font-weight: 700;">Operational</span>
-                </div>
-                <div class="system-pill">
-                    <span style="color: var(--text-secondary);">Protocol</span>
-                    <span style="color: var(--fedora-cyan); font-weight: 700;">Async v2.1</span>
-                </div>
-                <div class="system-pill" style="margin-bottom: 0;">
-                    <span style="color: var(--text-secondary);">Security</span>
-                    <span style="color: var(--fedora-danger); font-weight: 700;">Robust</span>
-                </div>
-            </div>
-        </aside>
+{% block content %}
+<div class="page">
+    <!-- Hero -->
+    <div class="hero">
+        <div class="hero-label">Participant Portal</div>
+        <h1>My <em>Fedora</em> Node</h1>
+        <p class="hero-sub">Your personal contribution dashboard — track trust, sync history, and model quality impact
+            in real time.</p>
     </div>
 
-    <script>
-        // ── Live polling (main + aside) ─────────────────────────────────────
-        setInterval(() => {
-            fetch('/').then(res => res.text()).then(html => {
-                const parser = new DOMParser();
-                const newDoc = parser.parseFromString(html, 'text/html');
-                const main = newDoc.querySelector('main');
-                if (main) document.querySelector('main').innerHTML = main.innerHTML;
+    <!-- Trust Gauge + Stats -->
+    <div class="trust-row">
+        <div class="trust-card">
+            <div class="trust-label">Trust Excellence</div>
+            <div class="gauge-wrap">
+                <canvas class="gauge-canvas" id="trustGauge"></canvas>
+                <div class="gauge-value" id="gaugeVal">—</div>
+            </div>
+            <div class="trust-score-text" id="trustStatus">Loading…</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card accepted">
+                <div class="icon">✅</div>
+                <div class="label">Accepted Syncs</div>
+                <div class="value" id="cntAccepted">—</div>
+                <div class="trend">Updates accepted by hub</div>
+            </div>
+            <div class="stat-card rejected">
+                <div class="icon">❌</div>
+                <div class="label">Rejected Syncs</div>
+                <div class="value" id="cntRejected">—</div>
+                <div class="trend">Flagged or malformed</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">🔁</div>
+                <div class="label">Total Contributions</div>
+                <div class="value" id="cntTotal">{{ recent_updates.count }}</div>
+                <div class="trend">All-time submissions</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics History Chart -->
+    <div class="section">
+        <div class="section-head">
+            <h2>My Model Quality History</h2>
+            <span class="sub">RMSE &amp; MAE per contribution round</span>
+        </div>
+        <div class="chart-card">
+            <div class="metrics-legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#3B82F6"></div> Local RMSE
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#10B981"></div> Local MAE
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="border:1px dashed #10B981; background:transparent;"></div> Global
+                    Benchmark
+                </div>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="metricsChart"></canvas>
+            </div>
+            <p id="metricsHint"
+                style="text-align:center; font-size:12px; color:var(--muted); margin-top:12px; display:none;">
+                No metric data yet — train &amp; push to see your quality scores.
+            </p>
+        </div>
+    </div>
+
+    <!-- Sync History Table -->
+    <div class="section">
+        <div class="section-head">
+            <h2>Sync History</h2>
+            <span class="sub">Recent 10 submissions</span>
+        </div>
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>Status</th>
+                        <th>Update Norm</th>
+                        <th>Local RMSE</th>
+                        <th>Local MAE</th>
+                        <th>When</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for update in recent_updates %}
+                    <tr>
+                        <td><span class="mono-val">#{{ update.id }}</span></td>
+                        <td>
+                            <span class="badge {% if update.accepted %}badge-ok{% else %}badge-no{% endif %}">
+                                {% if update.accepted %}Accepted{% else %}Rejected{% endif %}
+                            </span>
+                        </td>
+                        <td><span class="mono-val">{{ update.norm|stringformat:".4f" }}</span></td>
+                        <td>
+                            {% if update.local_rmse %}
+                            <span class="mono-val">{{ update.local_rmse|stringformat:".4f" }}</span>
+                            {% else %}
+                            <span style="color:var(--muted); font-size:12px;">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if update.local_mae %}
+                            <span class="mono-val">{{ update.local_mae|stringformat:".4f" }}</span>
+                            {% else %}
+                            <span style="color:var(--muted); font-size:12px;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:var(--muted); font-size:12px;">{{ update.timestamp|timesince }} ago</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty">
+                                <div class="icon">🌱</div>
+                                <p>No contributions yet. Start by training in the Notebook.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-strip">
+        <div>
+            <h3>Ready to contribute?</h3>
+            <p>Upload your data, train locally, and push your weights to the global federation.</p>
+        </div>
+        <a href="/train/" class="cta-btn">Open Federated Notebook →</a>
+    </div>
+
+    <!-- Node Status -->
+    <div class="node-strip">
+        <div class="node-pill">
+            <div class="nl">Node ID</div>
+            <div class="nv">{{ client.client_id|truncatechars:20 }}</div>
+        </div>
+        <div class="node-pill">
+            <div class="nl">Hub Status</div>
+            <div class="nv"><span class="online-dot"></span>Connected</div>
+        </div>
+        <div class="node-pill">
+            <div class="nl">Cluster Version</div>
+            <div class="nv">v{{ latest_model.version|default:0 }}</div>
+        </div>
+        <div class="node-pill">
+            <div class="nl">Trust Score</div>
+            <div class="nv" id="trustScoreBottom">{{ client.trust_score|stringformat:".2f" }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const CLIENT_ID = "{{ client.client_id }}";
+    const TRUST_SCORE = parseFloat("{{ client.trust_score|default:'1.0' }}");
+
+    // Trust Gauge
+    const gCtx = document.getElementById('trustGauge').getContext('2d');
+    const score = Math.min(Math.max(TRUST_SCORE, 0), 3);
+    const ratio = score / 3;
+    const gaugeColor = ratio > 0.66 ? '#10B981' : ratio > 0.33 ? '#F59E0B' : '#EF4444';
+
+    new Chart(gCtx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [ratio, 1 - ratio],
+                backgroundColor: [gaugeColor, 'rgba(255,255,255,0.05)'],
+                borderWidth: 0, circumference: 180, rotation: 270,
+            }]
+        },
+        options: { responsive: false, cutout: '72%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    });
+
+    document.getElementById('gaugeVal').textContent = TRUST_SCORE.toFixed(2);
+    document.getElementById('gaugeVal').style.color = gaugeColor;
+
+    const statusLabels = ['Untrusted', 'Low Trust', 'Moderate', 'Trusted', 'Excellent'];
+    const statusIdx = Math.min(Math.floor(ratio * 5), 4);
+    document.getElementById('trustStatus').textContent = statusLabels[statusIdx];
+    document.getElementById('trustStatus').style.color = gaugeColor;
+
+    // Metrics
+    let metricsChart = null;
+
+    async function loadMetrics() {
+        try {
+            const res = await fetch(`/api/metrics-history?client_id=${encodeURIComponent(CLIENT_ID)}&limit=15`);
+            if (!res.ok) return;
+            const data = await res.json();
+
+            const history = (data.history || []).reverse();
+            const acc = (data.history || []).filter(h => h.accepted).length;
+            const rej = (data.history || []).filter(h => !h.accepted).length;
+
+            document.getElementById('cntAccepted').textContent = acc;
+            document.getElementById('cntRejected').textContent = rej;
+            document.getElementById('cntTotal').textContent = data.history ? data.history.length : '—';
+
+            const rmseData = history.map(h => h.local_rmse);
+            const maeData = history.map(h => h.local_mae);
+            const labels = history.map((h, i) => `R${i + 1}`);
+            const hasData = rmseData.some(v => v !== null);
+
+            if (!hasData) { document.getElementById('metricsHint').style.display = 'block'; return; }
+            else { document.getElementById('metricsHint').style.display = 'none'; }
+
+            const ctx = document.getElementById('metricsChart').getContext('2d');
+            if (metricsChart) metricsChart.destroy();
+
+            metricsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Local RMSE', data: rmseData, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.08)', tension: 0.4, pointRadius: 4, fill: true, spanGaps: true },
+                        { label: 'Local MAE', data: maeData, borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.06)', tension: 0.4, pointRadius: 4, fill: true, spanGaps: true },
+                        { label: 'Global Benchmark', data: labels.map(() => data.global_best_rmse || 0), borderColor: '#10B981', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, fill: false, order: 1 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748B', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748B', font: { size: 10 } } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: 'rgba(7,12,20,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#E2E8F0', bodyColor: '#94A3B8', padding: 12 }
+                    }
+                }
             });
-        }, 10000);
+        } catch (e) { console.warn('Metrics load failed:', e); }
+    }
 
-        // ── Version History ─────────────────────────────────────────────────
-        async function loadVersions() {
-            const panel = document.getElementById('version-history-panel');
-            panel.innerHTML = '<div style="text-align:center;padding:16px;font-size:11px;color:var(--text-secondary);">Loading...</div>';
-            try {
-                const res = await fetch('/api/fl/versions');
-                const data = await res.json();
-                if (!data.versions || data.versions.length === 0) {
-                    panel.innerHTML = '<div style="text-align:center;padding:16px;font-size:11px;color:var(--text-secondary);">No versions saved yet.</div>';
-                    return;
-                }
-                const latestVer = data.versions[0].version;
-                panel.innerHTML = data.versions.map(v => `
-                    <div class="version-row">
-                        <div class="version-tag">v${v.version}</div>
-                        <div class="version-meta">
-                            ${v.best_rmse !== null ? 'RMSE ' + v.best_rmse : '—'}<br>
-                            ${v.created_at ? new Date(v.created_at).toLocaleTimeString() : ''}
-                        </div>
-                        <button
-                            class="rollback-btn"
-                            id="rb-${v.version}"
-                            ${v.version === latestVer ? 'disabled title="Current version"' : ''}
-                            onclick="doRollback(${v.version})">
-                            ${v.version === latestVer ? '✓ Current' : '⏪ Restore'}
-                        </button>
-                    </div>
-                `).join('');
-            } catch (e) {
-                panel.innerHTML = `<div style="color:var(--fedora-danger);font-size:11px;padding:12px;">Error: ${e.message}</div>`;
-            }
-        }
-
-        async function doRollback(ver) {
-            const btn = document.getElementById(`rb-${ver}`);
-            if (!btn) return;
-            btn.disabled = true;
-            btn.textContent = 'Rolling...';
-            try {
-                const res = await fetch(`/api/fl/rollback/${ver}`, { method: 'POST' });
-                const data = await res.json();
-                if (res.ok) {
-                    btn.textContent = `✓ → v${data.new_version}`;
-                    btn.style.color = 'var(--fedora-cyan)';
-                    btn.style.borderColor = 'var(--fedora-cyan)';
-                    setTimeout(loadVersions, 1200);
-                } else {
-                    btn.textContent = 'Failed';
-                    btn.style.color = 'var(--fedora-danger)';
-                    btn.disabled = false;
-                }
-            } catch (e) {
-                btn.textContent = 'Error';
-                btn.disabled = false;
-            }
-        }
-
-        async function deleteLatest() {
-            const btn = document.getElementById('btn-delete-latest');
-            const panel = document.getElementById('version-history-panel');
-            // Find current latest version number for the confirm message
-            const firstTag = panel.querySelector('.version-tag');
-            const curVer = firstTag ? firstTag.textContent.trim() : 'latest';
-            if (!confirm(`Delete ${curVer}? This is permanent — the model will revert to the previous version.`)) return;
-
-            btn.disabled = true;
-            btn.textContent = 'Deleting…';
-            try {
-                const res = await fetch('/api/fl/model/latest', { method: 'DELETE' });
-                const data = await res.json();
-                if (res.ok) {
-                    btn.textContent = `✓ Reverted to v${data.active_version ?? 'none'}`;
-                    btn.style.color = 'var(--fedora-cyan)';
-                    btn.style.borderColor = 'var(--fedora-cyan)';
-                    setTimeout(() => { btn.textContent = '⌫ Delete Latest'; btn.style.color = ''; btn.style.borderColor = ''; btn.disabled = false; loadVersions(); }, 2000);
-                } else {
-                    btn.textContent = data.detail || 'Failed';
-                    btn.style.color = 'var(--fedora-danger)';
-                    setTimeout(() => { btn.textContent = '⌫ Delete Latest'; btn.style.color = ''; btn.disabled = false; }, 2500);
-                }
-            } catch (e) {
-                btn.textContent = 'Error';
-                setTimeout(() => { btn.textContent = '⌫ Delete Latest'; btn.disabled = false; }, 2000);
-            }
-        }
-
-        // Load on page open
-        loadVersions();
-    </script>
-</body>
-
-</html>
+    loadMetrics();
+    setInterval(loadMetrics, 20000);
+</script>
+{% endblock %}

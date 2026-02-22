@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+{% extends 'base.html' %}
+{% block content %}
 <html lang="en">
 
 <head>
@@ -680,16 +681,7 @@
 </head>
 
 <body>
-    <nav class="topbar">
-        <div class="brand">
-            Fe<span>dora</span> <em>Federated Notebook</em>
-        </div>
-        <div class="topbar-right">
-            <div class="node-id">NODE: <span>{{ user.username }}</span></div>
-            <a href="/" class="nav-btn">{% if is_host %}Hub{% else %}Portal{% endif %}</a>
-            <a href="/logout/" class="nav-btn danger">Logout</a>
-        </div>
-    </nav>
+
 
     <input type="hidden" id="client-id" value="{{ client_id }}">
 
@@ -1629,4 +1621,4 @@
 
 </body>
 
-</html>
+{% endblock %}

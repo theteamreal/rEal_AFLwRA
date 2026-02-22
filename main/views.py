@@ -27,43 +27,76 @@ def is_host_request(request):
 
 @login_required
 def dashboard_view(request):
+    """Host admin dashboard — global federation overview."""
     is_host = is_host_request(request)
     latest_model = GlobalModel.objects.first()
-    
-    # Get current client profile
-    client, _ = Client.objects.get_or_create(
-        user=request.user, 
+    Client.objects.get_or_create(
+        user=request.user,
         defaults={'client_id': f"node_{request.user.username}_{random.randint(100, 999)}"}
     )
+    raw_clients = Client.objects.all().order_by('-last_update')
+    recent_updates = ModelUpdateLog.objects.all().order_by('-timestamp')[:20]
 
-    if is_host:
-        clients = Client.objects.all().order_by('-trust_score')
-        recent_updates = ModelUpdateLog.objects.all().order_by('-timestamp')[:15]
-        
-        context = {
-            'title': 'Fedora Hub — Administration',
-            'latest_model': latest_model,
-            'clients': clients,
-            'recent_updates': recent_updates,
-            'page': 'dashboard',
-            'is_host': True,
-            'user': request.user
-        }
-        return render(request, 'dashboard.html', context)
-    else:
-        # Participant View: restricted and separate experience
-        recent_updates = ModelUpdateLog.objects.filter(client=client).order_by('-timestamp')[:10]
-        
-        context = {
-            'title': 'Fedora — Participant Portal',
-            'latest_model': latest_model,
-            'client': client,
-            'recent_updates': recent_updates,
-            'page': 'dashboard',
-            'is_host': False,
-            'user': request.user
-        }
-        return render(request, 'dashboard_client.html', context)
+    # Pre-compute per-client stats for template
+    clients_stats = []
+    for c in raw_clients:
+        logs = ModelUpdateLog.objects.filter(client=c)
+        total    = logs.count()
+        accepted = logs.filter(accepted=True).count()
+        rate     = f"{round(accepted/total*100)}%" if total > 0 else "—"
+        best     = logs.filter(local_rmse__isnull=False).order_by('local_rmse').first()
+        clients_stats.append({
+            'client': c,
+            'total': total,
+            'accepted': accepted,
+            'rate': rate,
+            'best_rmse': f"{best.local_rmse:.4f}" if best else "—",
+        })
+
+    # Federation totals
+    all_logs     = ModelUpdateLog.objects.all()
+    fed_accepted = all_logs.filter(accepted=True).count()
+    fed_rejected = all_logs.filter(accepted=False).count()
+    fed_total    = all_logs.count()
+    fed_rate     = f"{round(fed_accepted/fed_total*100)}%" if fed_total > 0 else "—"
+
+    context = {
+        'title': 'Fedora Hub — Administration',
+        'latest_model': latest_model,
+        'clients_stats': clients_stats,
+        'recent_updates': recent_updates,
+        'fed_accepted': fed_accepted,
+        'fed_rejected': fed_rejected,
+        'fed_total': fed_total,
+        'fed_rate': fed_rate,
+        'page': 'dashboard',
+        'is_host': is_host,
+        'user': request.user,
+    }
+    return render(request, 'dashboard.html', context)
+
+
+@login_required
+def dashboard_client_view(request):
+    """Participant portal — personal sync history and model quality."""
+    is_host = is_host_request(request)
+    latest_model = GlobalModel.objects.first()
+    client, _ = Client.objects.get_or_create(
+        user=request.user,
+        defaults={'client_id': f"node_{request.user.username}_{random.randint(100, 999)}"}
+    )
+    recent_updates = ModelUpdateLog.objects.filter(client=client).order_by('-timestamp')[:15]
+
+    context = {
+        'title': 'Fedora — Participant Portal',
+        'latest_model': latest_model,
+        'client': client,
+        'recent_updates': recent_updates,
+        'page': 'dashboard_client',
+        'is_host': False,
+        'user': request.user,
+    }
+    return render(request, 'dashboard_client.html', context)
 
 @login_required
 def train_page(request):

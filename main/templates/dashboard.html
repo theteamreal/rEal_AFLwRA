@@ -1,7 +1,6 @@
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}Fedora — Participant Hub{% endblock %}
+{% block title %}Fedora — Federation Hub{% endblock %}
 
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@700;900&display=swap"
@@ -9,16 +8,16 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
     :root {
-        --accent: rgba(255, 255, 255, 0.7);
-        --accent2: rgba(255, 255, 255, 0.5);
-        --danger: rgba(255, 100, 100, 0.7);
-        --gold: rgba(255, 255, 255, 0.6);
+        --accent: #3B82F6;
+        --accent2: #10B981;
+        --danger: #EF4444;
+        --gold: #F59E0B;
+        --purple: #8B5CF6;
         --glass: rgba(255, 255, 255, 0.04);
-        --glass-border: rgba(255, 255, 255, 0.08);
+        --glass-b: rgba(255, 255, 255, 0.08);
         --text: #E2E8F0;
-        --muted: rgba(255, 255, 255, 0.35);
+        --muted: #64748B;
         --mono: 'DM Mono', monospace;
-        --sans: 'Inter', sans-serif;
         --serif: 'Fraunces', serif;
     }
 
@@ -27,192 +26,210 @@
     }
 
     .page {
-        max-width: 1100px;
+        max-width: 1160px;
         margin: 0 auto;
-        padding: 48px 40px 80px;
-        font-family: var(--mono);
+        padding: 52px 40px 100px;
     }
 
-    /* ── Hero ── */
+    /* ── HERO ──────────────────────────────────────────── */
     .hero {
-        margin-bottom: 40px;
+        margin-bottom: 44px;
     }
 
-    .hero-label {
+    .hero-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         font-size: 10px;
         font-family: var(--mono);
         text-transform: uppercase;
         letter-spacing: 3px;
         color: var(--accent);
-        margin-bottom: 12px;
+        margin-bottom: 14px;
+    }
+
+    .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent2);
+        box-shadow: 0 0 10px var(--accent2);
+        animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .35;
+        }
     }
 
     .hero h1 {
         font-family: var(--serif);
-        font-size: 48px;
+        font-size: 54px;
         font-weight: 900;
-        letter-spacing: -2px;
-        line-height: 1.05;
-        margin-bottom: 12px;
+        letter-spacing: -2.5px;
+        line-height: 1;
+        margin-bottom: 14px;
     }
 
     .hero h1 em {
         font-style: normal;
-        color: rgba(255, 255, 255, 0.5);
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
 
     .hero-sub {
         color: var(--muted);
         font-size: 14px;
-        line-height: 1.6;
+        line-height: 1.7;
+        max-width: 560px;
     }
 
-    /* ── Trust Gauge ── */
-    .trust-row {
-        display: grid;
-        grid-template-columns: 280px 1fr;
+    .hero-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
         gap: 24px;
-        margin-bottom: 32px;
     }
 
-    .trust-card {
-        background: var(--glass);
-        border: 1px solid var(--glass-border);
-        border-radius: 14px;
-        padding: 28px;
+    .hero-meta {
+        padding-top: 8px;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-        backdrop-filter: blur(12px);
+        align-items: flex-end;
+        gap: 8px;
     }
 
-    .trust-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), transparent);
-        pointer-events: none;
-    }
-
-    .gauge-wrap {
-        position: relative;
-        width: 140px;
-        height: 80px;
-        margin-bottom: 16px;
-    }
-
-    .gauge-canvas {
-        width: 140px;
-        height: 80px;
-    }
-
-    .gauge-value {
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        font-family: var(--serif);
-        font-size: 28px;
-        font-weight: 900;
-        color: white;
-        line-height: 1;
-    }
-
-    .trust-label {
-        font-size: 10px;
+    .model-badge {
         font-family: var(--mono);
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: var(--muted);
-        margin-bottom: 4px;
+        font-size: 12px;
+        padding: 8px 16px;
+        background: rgba(59, 130, 246, 0.08);
+        border: 1px solid rgba(59, 130, 246, 0.22);
+        border-radius: 8px;
+        color: var(--accent);
+        white-space: nowrap;
     }
 
-    .trust-score-text {
-        font-size: 13px;
-        color: var(--text);
+    .model-badge span {
+        color: white;
+        font-weight: 600;
     }
 
-    /* ── Stats Cards ── */
+    /* ── STATS GRID ────────────────────────────────────── */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 16px;
+        margin-bottom: 40px;
     }
 
     .stat-card {
         background: var(--glass);
-        border: 1px solid var(--glass-border);
-        border-radius: 12px;
-        padding: 24px;
-        transition: all 0.25s;
-        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-b);
+        border-radius: 16px;
+        padding: 26px 22px;
+        position: relative;
+        overflow: hidden;
+        transition: all .25s;
+    }
+
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .stat-card.blue::after {
+        background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .stat-card.green::after {
+        background: linear-gradient(90deg, var(--accent2), transparent);
+    }
+
+    .stat-card.red::after {
+        background: linear-gradient(90deg, var(--danger), transparent);
+    }
+
+    .stat-card.purple::after {
+        background: linear-gradient(90deg, var(--purple), transparent);
     }
 
     .stat-card:hover {
-        transform: translateY(-3px);
-        border-color: rgba(255, 255, 255, 0.14);
+        transform: translateY(-4px);
+        border-color: rgba(255, 255, 255, .12);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
     }
 
-    .stat-card .icon {
+    .stat-icon {
         font-size: 20px;
         margin-bottom: 14px;
     }
 
-    .stat-card .label {
+    .stat-label {
         font-size: 10px;
         font-family: var(--mono);
         text-transform: uppercase;
         letter-spacing: 2px;
         color: var(--muted);
+        margin-bottom: 10px;
+    }
+
+    .stat-value {
+        font-family: var(--serif);
+        font-size: 40px;
+        font-weight: 900;
+        line-height: 1;
         margin-bottom: 8px;
     }
 
-    .stat-card .value {
-        font-family: var(--serif);
-        font-size: 36px;
-        font-weight: 900;
-        color: white;
-        line-height: 1;
+    .stat-card.blue .stat-value {
+        color: var(--accent);
     }
 
-    .stat-card .trend {
-        font-size: 11px;
-        margin-top: 8px;
-        color: var(--muted);
-    }
-
-    .stat-card.accepted {
-        border-color: rgba(16, 185, 129, 0.2);
-    }
-
-    .stat-card.accepted .value {
+    .stat-card.green .stat-value {
         color: var(--accent2);
     }
 
-    .stat-card.rejected {
-        border-color: rgba(239, 68, 68, 0.15);
-    }
-
-    .stat-card.rejected .value {
+    .stat-card.red .stat-value {
         color: var(--danger);
     }
 
-    /* ── Section ── */
+    .stat-card.purple .stat-value {
+        color: var(--purple);
+    }
+
+    .stat-trend {
+        font-size: 11px;
+        color: var(--muted);
+    }
+
+    /* ── SECTION ───────────────────────────────────────── */
     .section {
-        margin-top: 40px;
+        margin-bottom: 40px;
     }
 
     .section-head {
         display: flex;
         align-items: baseline;
+        justify-content: space-between;
         gap: 12px;
-        margin-bottom: 20px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--glass-border);
+        margin-bottom: 18px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--glass-b);
     }
 
     .section-head h2 {
@@ -228,23 +245,19 @@
         color: var(--muted);
     }
 
+    /* ── CHART ─────────────────────────────────────────── */
     .chart-card {
         background: var(--glass);
-        border: 1px solid var(--glass-border);
-        border-radius: 14px;
-        padding: 24px;
+        border: 1px solid var(--glass-b);
+        border-radius: 16px;
+        padding: 28px;
         backdrop-filter: blur(12px);
     }
 
-    .chart-wrap {
-        height: 220px;
-        position: relative;
-    }
-
-    .metrics-legend {
+    .chart-legend {
         display: flex;
         gap: 20px;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
     }
 
     .legend-item {
@@ -261,11 +274,16 @@
         border-radius: 50%;
     }
 
-    /* ── Table ── */
+    .chart-wrap {
+        height: 240px;
+        position: relative;
+    }
+
+    /* ── PARTICIPANTS TABLE ─────────────────────────────── */
     .table-card {
         background: var(--glass);
-        border: 1px solid var(--glass-border);
-        border-radius: 14px;
+        border: 1px solid var(--glass-b);
+        border-radius: 16px;
         overflow: hidden;
         backdrop-filter: blur(12px);
     }
@@ -283,20 +301,20 @@
         text-transform: uppercase;
         letter-spacing: 1.5px;
         color: var(--muted);
-        background: rgba(255, 255, 255, 0.02);
-        border-bottom: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, .02);
+        border-bottom: 1px solid var(--glass-b);
     }
 
     td {
-        padding: 16px 20px;
+        padding: 15px 20px;
         font-size: 13px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        transition: background 0.15s;
+        border-bottom: 1px solid rgba(255, 255, 255, .04);
+        transition: background .15s;
         color: var(--text);
     }
 
     tr:hover td {
-        background: rgba(255, 255, 255, 0.02);
+        background: rgba(255, 255, 255, .025);
     }
 
     tr:last-child td {
@@ -305,7 +323,7 @@
 
     .badge {
         display: inline-block;
-        padding: 3px 8px;
+        padding: 3px 9px;
         border-radius: 4px;
         font-size: 9px;
         font-family: var(--mono);
@@ -315,15 +333,21 @@
     }
 
     .badge-ok {
-        background: rgba(16, 185, 129, 0.1);
+        background: rgba(16, 185, 129, .1);
         color: var(--accent2);
-        border: 1px solid rgba(16, 185, 129, 0.2);
+        border: 1px solid rgba(16, 185, 129, .2);
     }
 
     .badge-no {
-        background: rgba(239, 68, 68, 0.1);
+        background: rgba(239, 68, 68, .1);
         color: var(--danger);
-        border: 1px solid rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(239, 68, 68, .2);
+    }
+
+    .badge-admin {
+        background: rgba(139, 92, 246, .1);
+        color: var(--purple);
+        border: 1px solid rgba(139, 92, 246, .2);
     }
 
     .mono-val {
@@ -332,118 +356,68 @@
         color: var(--muted);
     }
 
-    /* ── CTA ── */
-    .cta-strip {
-        margin-top: 40px;
-        padding: 32px 40px;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.05));
-        border: 1px solid rgba(59, 130, 246, 0.2);
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 20px;
-        backdrop-filter: blur(12px);
-    }
-
-    .cta-strip h3 {
-        font-family: var(--serif);
-        font-size: 22px;
-        font-weight: 900;
-        margin-bottom: 6px;
-    }
-
-    .cta-strip p {
-        font-size: 13px;
-        color: var(--muted);
-    }
-
-    .cta-btn {
-        flex-shrink: 0;
-        display: inline-block;
-        padding: 14px 32px;
-        background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(10px);
-        color: rgba(255, 255, 255, 0.85);
-        text-decoration: none;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        font-weight: 500;
-        font-size: 12px;
+    .rank-num {
         font-family: var(--mono);
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        transition: all 0.25s;
-        white-space: nowrap;
+        font-size: 11px;
+        color: var(--muted);
+        width: 24px;
+        text-align: right;
     }
 
-    .cta-btn:hover {
-        background: rgba(255, 255, 255, 0.15);
-        border-color: rgba(255, 255, 255, 0.25);
-        transform: translateY(-1px);
+    .node-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text);
     }
 
-    /* ── Node Status ── */
-    .node-strip {
-        margin-top: 24px;
-        display: flex;
+    .node-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--accent2);
+        box-shadow: 0 0 5px var(--accent2);
+    }
+
+    /* ── GLOBAL MODEL INFO STRIP ───────────────────────── */
+    .info-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
         gap: 16px;
+        margin-bottom: 40px;
     }
 
-    .node-pill {
-        flex: 1;
-        padding: 16px 20px;
+    .info-pill {
+        padding: 20px 22px;
         background: var(--glass);
-        border: 1px solid var(--glass-border);
-        border-radius: 10px;
-        text-align: center;
-        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-b);
+        border-radius: 12px;
+        transition: border-color .2s;
     }
 
-    .node-pill .nl {
+    .info-pill:hover {
+        border-color: rgba(255, 255, 255, .14);
+    }
+
+    .info-pill .il {
         font-size: 9px;
         font-family: var(--mono);
         text-transform: uppercase;
-        letter-spacing: 2px;
+        letter-spacing: 2.5px;
         color: var(--muted);
-        margin-bottom: 6px;
+        margin-bottom: 8px;
     }
 
-    .node-pill .nv {
-        font-size: 13px;
+    .info-pill .iv {
+        font-size: 15px;
         font-weight: 600;
         color: var(--text);
         font-family: var(--mono);
     }
 
-    .online-dot {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--accent2);
-        box-shadow: 0 0 6px var(--accent2);
-        margin-right: 5px;
-    }
-
-    @keyframes pulse {
-
-        0%,
-        100% {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        50% {
-            opacity: 0.6;
-            transform: scale(0.85);
-        }
-    }
-
-    .online-dot {
-        animation: pulse 2s infinite;
-    }
-
+    /* ── EMPTY ─────────────────────────────────────────── */
     .empty {
         text-align: center;
         padding: 60px 20px;
@@ -451,36 +425,25 @@
     }
 
     .empty .icon {
-        font-size: 36px;
+        font-size: 32px;
         margin-bottom: 12px;
-        opacity: 0.3;
+        opacity: .3;
     }
 
     .empty p {
         font-size: 13px;
     }
 
-    @media (max-width: 900px) {
-        .trust-row {
-            grid-template-columns: 1fr;
-        }
+    /* ── RESPONSIVE ────────────────────────────────────── */
+    @media (max-width: 960px) {
 
-        .stats-grid {
+        .stats-grid,
+        .info-strip {
             grid-template-columns: repeat(2, 1fr);
         }
 
-        .cta-strip {
+        .hero-row {
             flex-direction: column;
-        }
-    }
-
-    @media (max-width: 580px) {
-        .page {
-            padding: 24px 16px 60px;
-        }
-
-        .node-strip {
-            flex-wrap: wrap;
         }
     }
 </style>
@@ -488,87 +451,162 @@
 
 {% block content %}
 <div class="page">
+
     <!-- Hero -->
     <div class="hero">
-        <div class="hero-label">Participant Portal</div>
-        <h1>My <em>Fedora</em> Node</h1>
-        <p class="hero-sub">Your personal contribution dashboard — track trust, sync history, and model quality impact
-            in real time.</p>
-    </div>
-
-    <!-- Trust Gauge + Stats -->
-    <div class="trust-row">
-        <div class="trust-card">
-            <div class="trust-label">Trust Excellence</div>
-            <div class="gauge-wrap">
-                <canvas class="gauge-canvas" id="trustGauge"></canvas>
-                <div class="gauge-value" id="gaugeVal">—</div>
-            </div>
-            <div class="trust-score-text" id="trustStatus">Loading…</div>
+        <div class="hero-eyebrow">
+            <div class="status-dot"></div>
+            Federation Control Plane
         </div>
-
-        <div class="stats-grid">
-            <div class="stat-card accepted">
-                <div class="icon">✅</div>
-                <div class="label">Accepted Syncs</div>
-                <div class="value" id="cntAccepted">—</div>
-                <div class="trend">Updates accepted by hub</div>
+        <div class="hero-row">
+            <div>
+                <h1><em>Fedora</em> Hub</h1>
+                <p class="hero-sub">Global federation dashboard — monitor all participants, aggregation health, and
+                    model quality across every node in real time.</p>
             </div>
-            <div class="stat-card rejected">
-                <div class="icon">❌</div>
-                <div class="label">Rejected Syncs</div>
-                <div class="value" id="cntRejected">—</div>
-                <div class="trend">Flagged or malformed</div>
-            </div>
-            <div class="stat-card">
-                <div class="icon">🔁</div>
-                <div class="label">Total Contributions</div>
-                <div class="value" id="cntTotal">{{ recent_updates.count }}</div>
-                <div class="trend">All-time submissions</div>
+            <div class="hero-meta">
+                <div class="model-badge">Global Model · v<span>{{ latest_model.version|default:0 }}</span></div>
+                <a href="/train/" class="model-badge"
+                    style="text-decoration:none; background:rgba(16,185,129,.08); border-color:rgba(16,185,129,.22); color:var(--accent2);">⚡
+                    Open Notebook</a>
             </div>
         </div>
     </div>
 
-    <!-- Metrics History Chart -->
+    <!-- Federation Stats -->
+    <div class="stats-grid">
+        <div class="stat-card blue">
+            <div class="stat-icon">🌐</div>
+            <div class="stat-label">Active Nodes</div>
+            <div class="stat-value">{{ clients_stats|length }}</div>
+            <div class="stat-trend">Registered participants</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon">✅</div>
+            <div class="stat-label">Accepted Updates</div>
+            <div class="stat-value">{{ fed_accepted }}</div>
+            <div class="stat-trend">Integrated into global model</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon">❌</div>
+            <div class="stat-label">Rejected Updates</div>
+            <div class="stat-value">{{ fed_rejected }}</div>
+            <div class="stat-trend">Quality-gated or flagged</div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-icon">📊</div>
+            <div class="stat-label">Total Submissions</div>
+            <div class="stat-value">{{ fed_total }}</div>
+            <div class="stat-trend">All-time across all nodes</div>
+        </div>
+    </div>
+
+    <!-- Global Model Info -->
+    <div class="info-strip">
+        <div class="info-pill">
+            <div class="il">Model Version</div>
+            <div class="iv">v{{ latest_model.version|default:0 }}</div>
+        </div>
+        <div class="info-pill">
+            <div class="il">Global Best RMSE</div>
+            <div class="iv">{% if latest_model.best_rmse %}{{ latest_model.best_rmse|stringformat:".4f" }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="info-pill">
+            <div class="il">Global Best MAE</div>
+            <div class="iv">{% if latest_model.best_mae %}{{ latest_model.best_mae|stringformat:".4f" }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="info-pill">
+            <div class="il">Acceptance Rate</div>
+            <div class="iv">{{ fed_rate }}</div>
+        </div>
+    </div>
+
+    <!-- Global Aggregation Chart -->
     <div class="section">
         <div class="section-head">
-            <h2>My Model Quality History</h2>
-            <span class="sub">RMSE &amp; MAE per contribution round</span>
+            <h2>Aggregation Quality History</h2>
+            <span class="sub">Federation-wide RMSE &amp; MAE over time</span>
         </div>
         <div class="chart-card">
-            <div class="metrics-legend">
+            <div class="chart-legend">
                 <div class="legend-item">
-                    <div class="legend-dot" style="background:#3B82F6"></div> Local RMSE
+                    <div class="legend-dot" style="background:#3B82F6"></div> RMSE
                 </div>
                 <div class="legend-item">
-                    <div class="legend-dot" style="background:#10B981"></div> Local MAE
-                </div>
-                <div class="legend-item">
-                    <div class="legend-dot" style="border:1px dashed #10B981; background:transparent;"></div> Global
-                    Benchmark
+                    <div class="legend-dot" style="background:#10B981"></div> MAE
                 </div>
             </div>
             <div class="chart-wrap">
-                <canvas id="metricsChart"></canvas>
+                <canvas id="fedChart"></canvas>
             </div>
-            <p id="metricsHint"
-                style="text-align:center; font-size:12px; color:var(--muted); margin-top:12px; display:none;">
-                No metric data yet — train &amp; push to see your quality scores.
+            <p id="fedHint" style="text-align:center;font-size:12px;color:var(--muted);margin-top:14px;display:none;">
+                No aggregation data yet — nodes need to train and push updates.
             </p>
         </div>
     </div>
 
-    <!-- Sync History Table -->
+    <!-- Participants Leaderboard -->
     <div class="section">
         <div class="section-head">
-            <h2>Sync History</h2>
-            <span class="sub">Recent 10 submissions</span>
+            <h2>Participants</h2>
+            <span class="sub">{{ clients_stats|length }} node{{ clients_stats|length|pluralize }} registered</span>
         </div>
         <div class="table-card">
             <table>
                 <thead>
                     <tr>
-                        <th>Round</th>
+                        <th>#</th>
+                        <th>Node</th>
+                        <th>User</th>
+                        <th>Total</th>
+                        <th>Accepted</th>
+                        <th>Rate</th>
+                        <th>Best RMSE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in clients_stats %}
+                    <tr>
+                        <td class="rank-num">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="node-chip">
+                                <div class="node-dot"></div>
+                                {{ s.client.client_id|truncatechars:24 }}
+                            </div>
+                        </td>
+                        <td style="color:var(--muted);font-size:13px;">{{ s.client.user.username }}</td>
+                        <td><span class="mono-val">{{ s.total }}</span></td>
+                        <td><span class="mono-val">{{ s.accepted }}</span></td>
+                        <td><span class="mono-val">{{ s.rate }}</span></td>
+                        <td><span class="mono-val">{{ s.best_rmse }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty">
+                                <div class="icon">🌱</div>
+                                <p>No participants yet — share the network URL for others to join.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Submissions Log -->
+    <div class="section">
+        <div class="section-head">
+            <h2>Recent Submissions</h2>
+            <span class="sub">Last 20 across all nodes</span>
+        </div>
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Node</th>
                         <th>Status</th>
                         <th>Update Norm</th>
                         <th>Local RMSE</th>
@@ -580,6 +618,8 @@
                     {% for update in recent_updates %}
                     <tr>
                         <td><span class="mono-val">#{{ update.id }}</span></td>
+                        <td><span class="mono-val" style="font-size:11px;">{{ update.client.client_id|truncatechars:18
+                                }}</span></td>
                         <td>
                             <span class="badge {% if update.accepted %}badge-ok{% else %}badge-no{% endif %}">
                                 {% if update.accepted %}Accepted{% else %}Rejected{% endif %}
@@ -589,25 +629,21 @@
                         <td>
                             {% if update.local_rmse %}
                             <span class="mono-val">{{ update.local_rmse|stringformat:".4f" }}</span>
-                            {% else %}
-                            <span style="color:var(--muted); font-size:12px;">—</span>
-                            {% endif %}
+                            {% else %}<span style="color:var(--muted);font-size:12px;">—</span>{% endif %}
                         </td>
                         <td>
                             {% if update.local_mae %}
                             <span class="mono-val">{{ update.local_mae|stringformat:".4f" }}</span>
-                            {% else %}
-                            <span style="color:var(--muted); font-size:12px;">—</span>
-                            {% endif %}
+                            {% else %}<span style="color:var(--muted);font-size:12px;">—</span>{% endif %}
                         </td>
-                        <td style="color:var(--muted); font-size:12px;">{{ update.timestamp|timesince }} ago</td>
+                        <td style="color:var(--muted);font-size:12px;">{{ update.timestamp|timesince }} ago</td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="empty">
-                                <div class="icon">🌱</div>
-                                <p>No contributions yet. Start by training in the Notebook.</p>
+                                <div class="icon">📭</div>
+                                <p>No submissions yet.</p>
                             </div>
                         </td>
                     </tr>
@@ -617,104 +653,72 @@
         </div>
     </div>
 
-    <!-- CTA -->
-    <div class="cta-strip">
-        <div>
-            <h3>Ready to contribute?</h3>
-            <p>Upload your data, train locally, and push your weights to the global federation.</p>
+    <!-- Version History -->
+    <div class="section">
+        <div class="section-head">
+            <h2>Version History</h2>
+            <span class="sub">All saved global model checkpoints</span>
         </div>
-        <a href="/train/" class="cta-btn">Open Federated Notebook →</a>
+        <div id="version-history-panel" class="table-card">
+            <div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">Loading…</div>
+        </div>
     </div>
 
-    <!-- Node Status -->
-    <div class="node-strip">
-        <div class="node-pill">
-            <div class="nl">Node ID</div>
-            <div class="nv">{{ client.client_id|truncatechars:20 }}</div>
-        </div>
-        <div class="node-pill">
-            <div class="nl">Hub Status</div>
-            <div class="nv"><span class="online-dot"></span>Connected</div>
-        </div>
-        <div class="node-pill">
-            <div class="nl">Cluster Version</div>
-            <div class="nv">v{{ latest_model.version|default:0 }}</div>
-        </div>
-        <div class="node-pill">
-            <div class="nl">Trust Score</div>
-            <div class="nv" id="trustScoreBottom">{{ client.trust_score|stringformat:".2f" }}</div>
-        </div>
-    </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    const CLIENT_ID = "{{ client.client_id }}";
-    const TRUST_SCORE = parseFloat("{{ client.trust_score|default:'1.0' }}");
-
-    // Trust Gauge
-    const gCtx = document.getElementById('trustGauge').getContext('2d');
-    const score = Math.min(Math.max(TRUST_SCORE, 0), 3);
-    const ratio = score / 3;
-    const gaugeColor = ratio > 0.66 ? '#10B981' : ratio > 0.33 ? '#F59E0B' : '#EF4444';
-
-    new Chart(gCtx, {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                data: [ratio, 1 - ratio],
-                backgroundColor: [gaugeColor, 'rgba(255,255,255,0.05)'],
-                borderWidth: 0, circumference: 180, rotation: 270,
-            }]
-        },
-        options: { responsive: false, cutout: '72%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
-    });
-
-    document.getElementById('gaugeVal').textContent = TRUST_SCORE.toFixed(2);
-    document.getElementById('gaugeVal').style.color = gaugeColor;
-
-    const statusLabels = ['Untrusted', 'Low Trust', 'Moderate', 'Trusted', 'Excellent'];
-    const statusIdx = Math.min(Math.floor(ratio * 5), 4);
-    document.getElementById('trustStatus').textContent = statusLabels[statusIdx];
-    document.getElementById('trustStatus').style.color = gaugeColor;
-
-    // Metrics
-    let metricsChart = null;
-
-    async function loadMetrics() {
+    async function loadFedStats() {
         try {
-            const res = await fetch(`/api/metrics-history?client_id=${encodeURIComponent(CLIENT_ID)}&limit=15`);
+            // Load global metrics (no client_id = federation-wide)
+            const res = await fetch('/api/metrics-history?limit=20');
             if (!res.ok) return;
             const data = await res.json();
 
-            const history = (data.history || []).reverse();
+            const history = (data.history || []).slice().reverse();
             const acc = (data.history || []).filter(h => h.accepted).length;
             const rej = (data.history || []).filter(h => !h.accepted).length;
+            const tot = acc + rej;
+            const rate = tot > 0 ? Math.round((acc / tot) * 100) : 0;
 
-            document.getElementById('cntAccepted').textContent = acc;
-            document.getElementById('cntRejected').textContent = rej;
-            document.getElementById('cntTotal').textContent = data.history ? data.history.length : '—';
+            document.getElementById('fedAccepted').textContent = acc;
+            document.getElementById('fedRejected').textContent = rej;
+            document.getElementById('fedRate').textContent = rate + '%';
+
+            if (data.global_best_rmse != null) document.getElementById('globalRmse').textContent = data.global_best_rmse.toFixed(4);
+            if (data.global_best_mae != null) document.getElementById('globalMae').textContent = data.global_best_mae.toFixed(4);
 
             const rmseData = history.map(h => h.local_rmse);
             const maeData = history.map(h => h.local_mae);
-            const labels = history.map((h, i) => `R${i + 1}`);
+            const labels = history.map((_, i) => `S${i + 1}`);
             const hasData = rmseData.some(v => v !== null);
 
-            if (!hasData) { document.getElementById('metricsHint').style.display = 'block'; return; }
-            else { document.getElementById('metricsHint').style.display = 'none'; }
+            document.getElementById('fedHint').style.display = hasData ? 'none' : 'block';
+            if (!hasData) return;
 
-            const ctx = document.getElementById('metricsChart').getContext('2d');
-            if (metricsChart) metricsChart.destroy();
-
-            metricsChart = new Chart(ctx, {
+            const ctx = document.getElementById('fedChart').getContext('2d');
+            new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels,
                     datasets: [
-                        { label: 'Local RMSE', data: rmseData, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.08)', tension: 0.4, pointRadius: 4, fill: true, spanGaps: true },
-                        { label: 'Local MAE', data: maeData, borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.06)', tension: 0.4, pointRadius: 4, fill: true, spanGaps: true },
-                        { label: 'Global Benchmark', data: labels.map(() => data.global_best_rmse || 0), borderColor: '#10B981', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, fill: false, order: 1 }
+                        {
+                            label: 'RMSE',
+                            data: rmseData,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59,130,246,0.08)',
+                            tension: 0.4, pointRadius: 4, pointHoverRadius: 6,
+                            fill: true, spanGaps: true,
+                        },
+                        {
+                            label: 'MAE',
+                            data: maeData,
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16,185,129,0.06)',
+                            tension: 0.4, pointRadius: 4, pointHoverRadius: 6,
+                            fill: true, spanGaps: true,
+                        }
                     ]
                 },
                 options: {
@@ -726,14 +730,166 @@
                     },
                     plugins: {
                         legend: { display: false },
-                        tooltip: { backgroundColor: 'rgba(7,12,20,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#E2E8F0', bodyColor: '#94A3B8', padding: 12 }
+                        tooltip: {
+                            backgroundColor: 'rgba(7,12,20,0.95)',
+                            borderColor: 'rgba(255,255,255,0.08)',
+                            borderWidth: 1,
+                            titleColor: '#E2E8F0',
+                            bodyColor: '#94A3B8',
+                            padding: 14,
+                        }
                     }
                 }
             });
-        } catch (e) { console.warn('Metrics load failed:', e); }
+        } catch (e) {
+            console.warn('Fed stats load failed:', e);
+        }
     }
 
-    loadMetrics();
-    setInterval(loadMetrics, 20000);
+    // ── Version History ──────────────────────────────────────────────────────
+    const verPanel = document.getElementById('version-history-panel');
+
+    function fmtDate(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function rmseColor(v) {
+        if (v == null) return 'var(--muted)';
+        if (v < 0.08) return 'var(--accent2)';
+        if (v < 0.15) return 'var(--gold)';
+        return 'var(--danger)';
+    }
+
+    async function toggleContributors(ver, btn, container) {
+        if (container.style.display !== 'none') {
+            container.style.display = 'none';
+            btn.textContent = '▸';
+            return;
+        }
+        btn.textContent = '…';
+        try {
+            const res = await fetch(`/api/version-detail/${ver}`);
+            const data = await res.json();
+            const contribs = data.contributors || [];
+            if (!contribs.length) {
+                container.innerHTML = '<p style="padding:12px 20px;color:var(--muted);font-size:12px">No contributors recorded for this version.</p>';
+            } else {
+                container.innerHTML = `
+                <table style="width:100%;border-collapse:collapse;background:rgba(0,0,0,.15)">
+                    <thead>
+                        <tr>
+                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Node</th>
+                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Status</th>
+                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Local RMSE</th>
+                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Norm</th>
+                            <th style="padding:8px 16px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;border-bottom:1px solid rgba(255,255,255,.05)">Staleness</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${contribs.map(c => `
+                        <tr>
+                            <td style="padding:9px 16px;font-family:var(--mono);font-size:11px;color:#CBD5E1;border-bottom:1px solid rgba(255,255,255,.03)">${c.client_id}</td>
+                            <td style="padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.03)">
+                                <span style="padding:2px 7px;border-radius:3px;font-size:9px;font-family:var(--mono);font-weight:700;text-transform:uppercase;
+                                    background:${c.accepted ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)'};
+                                    color:${c.accepted ? 'var(--accent2)' : 'var(--danger)'};
+                                    border:1px solid ${c.accepted ? 'rgba(16,185,129,.2)' : 'rgba(239,68,68,.2)'}">
+                                    ${c.accepted ? 'Accepted' : 'Rejected'}
+                                </span>
+                            </td>
+                            <td style="padding:9px 16px;font-family:var(--mono);font-size:11px;color:${rmseColor(c.local_rmse)};border-bottom:1px solid rgba(255,255,255,.03)">${c.local_rmse != null ? c.local_rmse : '—'}</td>
+                            <td style="padding:9px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.03)">${c.norm}</td>
+                            <td style="padding:9px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.03)">${c.staleness}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>`;
+            }
+        } catch (e) {
+            container.innerHTML = `<p style="padding:12px 20px;color:var(--danger);font-size:12px">Failed to load contributors: ${e.message}</p>`;
+        }
+        container.style.display = 'block';
+        btn.textContent = '▾';
+    }
+
+    async function loadVersionHistory() {
+        try {
+            const res = await fetch('/api/versions');
+            if (!res.ok) { verPanel.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--muted);font-size:13px">Could not load version history.</div>'; return; }
+            const data = await res.json();
+            const versions = data.versions || [];
+
+            if (!versions.length) {
+                verPanel.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--muted);font-size:13px">No checkpoints saved yet — train the first round to create a global model.</div>';
+                return;
+            }
+
+            verPanel.innerHTML = `
+            <table style="width:100%;border-collapse:collapse">
+                <thead>
+                    <tr>
+                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)"></th>
+                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Version</th>
+                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Created</th>
+                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Best RMSE</th>
+                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Best MAE</th>
+                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Accepted</th>
+                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Rejected</th>
+                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)">Weights</th>
+                        <th style="padding:14px 20px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06)"></th>
+                    </tr>
+                </thead>
+                <tbody id="ver-tbody"></tbody>
+            </table>`;
+
+            const tbody = document.getElementById('ver-tbody');
+            versions.forEach((v, idx) => {
+                const isLatest = idx === 0;
+                const rid = `contribs-v${v.version}`;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+                        <button id="expand-${v.version}" onclick="toggleContributors(${v.version}, this, document.getElementById('${rid}'))"
+                            style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;line-height:1;transition:color .2s"
+                            title="Show contributors">▸</button>
+                    </td>
+                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+                        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:#E2E8F0">v${v.version}</span>
+                        ${isLatest ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:9px;font-family:var(--mono);background:rgba(59,130,246,.12);color:var(--accent);border:1px solid rgba(59,130,246,.22)">LATEST</span>' : ''}
+                    </td>
+                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted);font-size:12px">${fmtDate(v.created_at)}</td>
+                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:${rmseColor(v.best_rmse)}">${v.best_rmse != null ? v.best_rmse : '—'}</td>
+                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--muted)">${v.best_mae != null ? v.best_mae : '—'}</td>
+                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--accent2)">${v.accepted_count}</td>
+                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:12px;color:var(--danger)">${v.rejected_count}</td>
+                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+                        ${v.weights_available
+                        ? '<span style="color:var(--accent2);font-size:11px;font-family:var(--mono)">✓ on disk</span>'
+                        : '<span style="color:var(--muted);font-size:11px;font-family:var(--mono)">✗ missing</span>'}
+                    </td>
+                    <td style="padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+                        ${v.weights_available
+                        ? `<a href="/api/download/${v.version}" download style="padding:5px 12px;border-radius:6px;font-size:11px;font-family:var(--mono);background:rgba(59,130,246,.1);color:var(--accent);border:1px solid rgba(59,130,246,.2);text-decoration:none;transition:all .2s;white-space:nowrap">↓ Download</a>`
+                        : ''}
+                    </td>`;
+                tbody.appendChild(row);
+
+                // Contributor sub-row
+                const subRow = document.createElement('tr');
+                subRow.innerHTML = `<td colspan="9" style="padding:0;border-bottom:1px solid rgba(255,255,255,.06)">
+                    <div id="${rid}" style="display:none"></div></td>`;
+                tbody.appendChild(subRow);
+            });
+
+        } catch (e) {
+            verPanel.innerHTML = `<div style="padding:30px 20px;text-align:center;color:var(--danger);font-size:13px">Error loading versions: ${e.message}</div>`;
+        }
+    }
+
+    loadFedStats();
+    loadVersionHistory();
+    setInterval(loadFedStats, 30000);
 </script>
 {% endblock %}

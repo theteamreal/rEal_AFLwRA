@@ -8,9 +8,38 @@ import json
 import os
 from main.federated_engine import get_latest_model, process_update
 from main import feature_schema as fs
+from main import vt_scanner
 from asgiref.sync import sync_to_async
 
 router = APIRouter()
+
+
+# ── VirusTotal Scan ─────────────────────────────────────────────────────────
+
+@router.post("/scan-file")
+async def scan_file(file: UploadFile = File(...)):
+    """
+    Scan an uploaded file with VirusTotal before processing.
+    Returns: { safe, malicious, suspicious, engines_total, verdict, cached }
+    If VT_API_KEY is not configured the endpoint returns safe=True with a warning.
+    """
+    try:
+        data = await file.read()
+        result = await vt_scanner.scan_bytes(data, file.filename or "upload.csv")
+        return result
+    except RuntimeError as e:
+        # API key not configured — warn but don't block the user
+        print(f"[VTScanner] {e}")
+        return {
+            "safe": True, "malicious": 0, "suspicious": 0,
+            "undetected": 0, "engines_total": 0,
+            "verdict": "SCAN SKIPPED — VT_API_KEY not configured",
+            "cached": False, "warning": str(e),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"VirusTotal scan failed: {str(e)}")
+
+
 
 
 class UpdateSubmission(BaseModel):
@@ -373,3 +402,97 @@ async def metrics_history(client_id: str = Query(...), limit: int = Query(10)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/versions")
+async def list_versions():
+    """Return a summary list of all saved GlobalModel checkpoints, newest first."""
+    from main.models import GlobalModel
+
+    def _fetch():
+        return list(GlobalModel.objects.all().order_by("-version"))
+
+    models = await sync_to_async(_fetch)()
+    return {
+        "versions": [
+            {
+                "version":        m.version,
+                "created_at":     m.created_at.isoformat() if m.created_at else None,
+                "best_rmse":      round(m.best_rmse, 4) if m.best_rmse is not None else None,
+                "best_mae":       round(m.best_mae,  4) if m.best_mae  is not None else None,
+                "accepted_count": m.accepted_count,
+                "rejected_count": m.rejected_count,
+                "weights_available": os.path.exists(m.weights_path),
+            }
+            for m in models
+        ]
+    }
+
+
+@router.get("/version-detail/{version}")
+async def version_detail(version: int):
+    """Return metrics + per-contributor breakdown for one saved model version."""
+    try:
+        from main.models import GlobalModel, ModelUpdateLog
+
+        def _fetch(ver):
+            model = GlobalModel.objects.filter(version=ver).first()
+            if not model:
+                return None, []
+            logs = list(
+                ModelUpdateLog.objects.filter(base_version=ver)
+                .order_by("timestamp")
+                .select_related("client")
+            )
+            return model, logs
+
+        model, logs = await sync_to_async(_fetch)(version)
+        if not model:
+            raise HTTPException(status_code=404, detail=f"Version {version} not found")
+
+        contributors = []
+        for log in logs:
+            contributors.append({
+                "client_id":  log.client.client_id,
+                "local_rmse": round(log.local_rmse, 4) if log.local_rmse is not None else None,
+                "staleness":  log.staleness,
+                "norm":       round(log.norm, 4),
+                "accepted":   log.accepted,
+            })
+
+        return {
+            "version":        model.version,
+            "created_at":     model.created_at.isoformat() if model.created_at else None,
+            "best_rmse":      round(model.best_rmse, 4) if model.best_rmse is not None else None,
+            "best_mae":       round(model.best_mae,  4) if model.best_mae  is not None else None,
+            "accepted_count": model.accepted_count,
+            "rejected_count": model.rejected_count,
+            "weights_available": os.path.exists(model.weights_path),
+            "contributors":   contributors,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/download/{version}")
+async def download_model(version: int):
+    """Stream the model weights JSON file as a downloadable attachment."""
+    from fastapi.responses import FileResponse
+    from main.models import GlobalModel
+
+    def _get_model(ver):
+        return GlobalModel.objects.filter(version=ver).first()
+
+    model = await sync_to_async(_get_model)(version)
+    if not model:
+        raise HTTPException(status_code=404, detail=f"Version {version} not found in database")
+    if not os.path.exists(model.weights_path):
+        raise HTTPException(status_code=404, detail=f"Weight file for v{version} not found on disk")
+
+    return FileResponse(
+        path=model.weights_path,
+        filename=f"fedora_global_v{version}.json",
+        media_type="application/json",
+    )

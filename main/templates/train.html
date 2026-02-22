@@ -747,10 +747,10 @@
                 <!-- Mode Toggle -->
                 <div class="mode-tabs">
                     <div class="mode-tab active" id="tab-clean" onclick="setMode('clean')">
-                        ✅ Clean CSV
+                        Clean CSV
                     </div>
                     <div class="mode-tab" id="tab-dirty" onclick="setMode('dirty')">
-                        🧹 Raw / Dirty CSV (auto-clean)
+                        Raw / Dirty CSV (auto-clean)
                     </div>
                 </div>
                 <p id="mode-desc" style="font-size:12px; color:var(--muted); margin-bottom:16px;">
@@ -1052,6 +1052,40 @@
         async function handleFile(file) {
             if (!file) return;
             document.getElementById('drop-zone').innerHTML = `<div class="dz-icon">⏳</div><div class="dz-text">Loading <strong>${file.name}</strong>…</div>`;
+
+            /* ── 🛡️ VirusTotal Scan ──────────────────────────────────────── */
+            try {
+                log(2, `<span style="color:var(--accent2)">🛡️ Scanning <em>${file.name}</em> for threats via VirusTotal…</span>`);
+                setStatus(2, 'Scanning…', 'running');
+                document.getElementById('drop-zone').innerHTML = `<div class="dz-icon">🛡️</div><div class="dz-text">Scanning for threats… <small style="opacity:.5">(may take up to 60s on first upload)</small></div>`;
+
+                const scanForm = new FormData();
+                scanForm.append('file', file);
+                const scanRes = await fetch('/api/scan-file', { method: 'POST', body: scanForm });
+                if (!scanRes.ok) throw new Error(`Scan API returned ${scanRes.status}`);
+                const scan = await scanRes.json();
+
+                if (!scan.safe) {
+                    // ── BLOCKED ──
+                    const msg = `🚨 File blocked: ${scan.verdict}`;
+                    log(2, `<span style="color:#ff6b6b;font-weight:600">${msg}</span>`, 'log-err');
+                    log(2, `<span style="color:#ff6b6b">Malicious detections: <strong>${scan.malicious}</strong> / ${scan.engines_total} engines&nbsp;&nbsp;|&nbsp;&nbsp;Suspicious: <strong>${scan.suspicious}</strong></span>`, 'log-err');
+                    log(2, `<span style="color:var(--muted)">Do NOT use this file. Delete it and upload a clean dataset.</span>`);
+                    setStatus(2, 'Blocked', 'fail');
+                    document.getElementById('drop-zone').innerHTML = `<div class="dz-icon">🚨</div><div class="dz-text" style="color:#ff6b6b"><strong>File blocked by VirusTotal</strong><br><small>${scan.verdict}</small></div>`;
+                    return; // ← abort all further processing
+                }
+
+                // ── CLEAN ──
+                if (scan.engines_total > 0) {
+                    // Only show the badge when a real scan happened (not skipped)
+                    log(2, `<span class="log-ok">✅ File scan clean — ${scan.verdict}${scan.cached ? ' (cached result)' : ''}</span>`);
+                }
+            } catch (scanErr) {
+                // VT unreachable / network error — log and proceed (don't block user)
+                log(2, `<span style="color:var(--muted)">⚠️ VirusTotal scan skipped (${scanErr.message}) — proceeding without scan.</span>`);
+            }
+            /* ── End VirusTotal Scan ────────────────────────────────────── */
 
             if (uploadMode === 'dirty') {
                 log(2, `Uploading <em>${file.name}</em> to /api/clean-csv for cleaning…`, 'log-warn');

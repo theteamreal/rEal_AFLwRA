@@ -2,9 +2,19 @@
 Django settings for FedGuard project.
 """
 
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# ── Load .env file (VT_API_KEY etc.) ────────────────────────────────────────
+_env_file = BASE_DIR / ".env"
+if _env_file.exists():
+    for _line in _env_file.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _v = _line.split("=", 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
 
 SECRET_KEY = 'fedguard-dev-secret-key-change-in-production'
 

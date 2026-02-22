@@ -191,15 +191,28 @@
 
     <!-- NAVBAR -->
     <nav class="fedora-nav" aria-label="Main navigation">
-        <a href="{% if user.is_authenticated %}/{% else %}/login/{% endif %}" class="fedora-nav-logo">Fedora</a>
+        <a href="/" class="fedora-nav-logo">Fedora</a>
         <div class="fedora-nav-actions">
             {% if user.is_authenticated %}
+            {# ── Dashboard (host admin) ── #}
             {% if page == 'dashboard' %}
             <a href="/train/" class="fedora-nav-link ghost">Notebook</a>
+
+            {# ── Dashboard client (participant) ── #}
+            {% elif page == 'dashboard_client' %}
+            <a href="/train/" class="fedora-nav-link ghost">Notebook</a>
+
+            {# ── Training Notebook ── #}
             {% elif page == 'train' %}
-            <a href="/hub/" class="fedora-nav-link ghost">{% if is_host %}Hub{% else %}Portal{% endif %}</a>
+            <a href="{% if is_host %}/dashboard/{% else %}/dashboard_client/{% endif %}" class="fedora-nav-link ghost">
+                {% if is_host %}Hub{% else %}Portal{% endif %}
+            </a>
+
+            {# ── Any other page ── #}
             {% else %}
-            <a href="/hub/" class="fedora-nav-link ghost">{% if is_host %}Hub{% else %}Portal{% endif %}</a>
+            <a href="{% if is_host %}/dashboard/{% else %}/dashboard_client/{% endif %}" class="fedora-nav-link ghost">
+                {% if is_host %}Hub{% else %}Portal{% endif %}
+            </a>
             <a href="/train/" class="fedora-nav-link ghost">Notebook</a>
             {% endif %}
             {% if user.username %}
